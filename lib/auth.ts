@@ -4,10 +4,10 @@ import prisma from '@/lib/prisma';
 
 // Retrieve the JWT secret, enforcing presence in production at runtime (lazy evaluation prevents module evaluation crash during next build)
 function getJwtSecret(): string {
-  const secret = process.env.JWT_SECRET;
+  const secret = process.env.JWT_SECRET || process.env.AUTH_SECRET;
   if (!secret) {
     if (process.env.NODE_ENV === 'production') {
-      throw new Error('FATAL SECURITY EXCEPTION: JWT_SECRET environment variable must be configured in production.');
+      throw new Error('FATAL SECURITY EXCEPTION: JWT_SECRET or AUTH_SECRET environment variable must be configured in production.');
     }
     return 'hellfire-prints-super-secret-key-change-in-prod-12345';
   }
