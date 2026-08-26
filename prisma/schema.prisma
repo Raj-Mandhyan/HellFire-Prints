@@ -1,0 +1,447 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum UserRole {
+  CUSTOMER
+  ADMIN
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  CREATED
+  PENDING
+  AUTHORIZED
+  CAPTURED
+  FAILED
+  REFUNDED
+}
+
+enum ShipmentStatus {
+  PENDING
+  LABEL_GENERATED
+  PICKED_UP
+  IN_TRANSIT
+  OUT_FOR_DELIVERY
+  DELIVERED
+  RTO
+}
+
+enum Orientation {
+  PORTRAIT
+  LANDSCAPE
+  SQUARE
+}
+
+model User {
+  id            String         @id @default(cuid())
+  name          String?
+  email         String?        @unique
+  emailVerified DateTime?
+  passwordHash  String?
+  image         String?
+  role          UserRole       @default(CUSTOMER)
+  accounts      Account[]
+  sessions      Session[]
+  orders        Order[]
+  cart          Cart?
+  likes         ProductLike[]
+  addresses     Address[]
+  reviews       Review[]
+  couponUsages  CouponUsage[]
+  notifications Notification[]
+  designs       CustomPosterDesign[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String
+  slug        String    @unique
+  description String?   @db.Text
+  image       String?
+  products    Product[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Product {
+  id          String         @id @default(cuid())
+  title       String
+  slug        String         @unique
+  description String         @db.Text
+  price       Float          // Base price
+  MRP         Float          // Original retail price
+  discount    Float          @default(0) // Discount percentage
+  SKU         String         @unique
+  featured    Boolean        @default(false)
+  trending    Boolean        @default(false)
+  active      Boolean        @default(true)
+  categoryId  String
+  category    Category       @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  images      ProductImage[]
+  variants    ProductVariant[]
+  reviews     Review[]
+  ratings     ProductRating[]
+  likes       ProductLike[]
+  cartItems   CartItem[]
+  orderItems  OrderItem[]
+  inventory   Inventory?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+}
+
+model ProductImage {
+  id        String   @id @default(cuid())
+  url       String
+  publicId  String?  // Cloudinary asset ID
+  alt       String?
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ProductVariant {
+  id              String       @id @default(cuid())
+  productId       String
+  product         Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sizeId          String
+  size            ProductSize  @relation(fields: [sizeId], references: [id], onDelete: Restrict)
+  frameId         String
+  frame           ProductFrame @relation(fields: [frameId], references: [id], onDelete: Restrict)
+  paperType       String       // "Matte", "Glossy"
+  additionalPrice Float        @default(0)
+  stock           Int          @default(10)
+  SKU             String       @unique
+  cartItems       CartItem[]
+  orderItems      OrderItem[]
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+}
+
+model ProductSize {
+  id              String           @id @default(cuid())
+  name            String           // "A4", "A3", "A2", etc.
+  dimensions      String           // "21 x 29.7 cm", etc.
+  width           Float            // for dimensions/shipping (cm)
+  height          Float            // for dimensions/shipping (cm)
+  additionalPrice Float            @default(0)
+  variants        ProductVariant[]
+}
+
+model ProductFrame {
+  id              String           @id @default(cuid())
+  name            String           // "No Frame", "Black Classic Frame", "Gold Premium Frame"
+  material        String?
+  color           String?
+  additionalPrice Float            @default(0)
+  variants        ProductVariant[]
+}
+
+model ProductRating {
+  id        String  @id @default(cuid())
+  rating    Int
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model Cart {
+  id           String     @id @default(cuid())
+  userId       String?    @unique
+  user         User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessionToken String?    @unique // Guest checkout
+  items        CartItem[]
+  couponCode   String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model CartItem {
+  id             String          @id @default(cuid())
+  cartId         String
+  cart           Cart            @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  productId      String
+  product        Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variantId      String?
+  variant        ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  customPosterId String?         @unique
+  customPoster   CustomPoster?   @relation(fields: [customPosterId], references: [id], onDelete: Cascade)
+  quantity       Int             @default(1)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+}
+
+model ProductLike {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, productId])
+}
+
+model Address {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String
+  phone      String
+  street     String
+  city       String
+  state      String
+  postalCode String
+  country    String   @default("India")
+  isDefault  Boolean  @default(false)
+  orders     Order[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Order {
+  id                     String         @id @default(cuid())
+  orderNumber            String         @unique
+  userId                 String?
+  user                   User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  items                  OrderItem[]
+  subtotal               Float
+  discount               Float          @default(0)
+  couponCode             String?
+  shippingFee            Float          @default(0)
+  tax                    Float          @default(0)
+  total                  Float
+  orderStatus            OrderStatus    @default(PENDING)
+  paymentStatus          PaymentStatus  @default(CREATED)
+  payment                Payment?
+  shippingAddressId      String?
+  shippingAddress        Address?       @relation(fields: [shippingAddressId], references: [id], onDelete: SetNull)
+  shippingAddressSnapshot Json?
+  razorpayOrderId        String?        @unique
+  shipping               Shipping?
+  additionalNote         String?        @db.Text
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
+}
+
+model OrderItem {
+  id             String          @id @default(cuid())
+  orderId        String
+  order          Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId      String?
+  product        Product?        @relation(fields: [productId], references: [id], onDelete: SetNull)
+  variantId      String?
+  variant        ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  customPosterId String?         @unique
+  customPoster   CustomPoster?   @relation(fields: [customPosterId], references: [id], onDelete: SetNull)
+  title          String
+  price          Float
+  quantity       Int
+  sizeName       String
+  sizeDimensions String
+  frameName      String
+  paperType      String
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+}
+
+model Payment {
+  id                String        @id @default(cuid())
+  orderId           String        @unique
+  order             Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  paymentStatus     PaymentStatus @default(CREATED)
+  amount            Float
+  currency          String        @default("INR")
+  razorpayOrderId   String?
+  razorpayPaymentId String?       @unique
+  razorpaySignature String?
+  refundId          String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+}
+
+model Inventory {
+  id             String   @id @default(cuid())
+  productId      String   @unique
+  product        Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity       Int      @default(0)
+  alertThreshold Int      @default(5)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Coupon {
+  id            String        @id @default(cuid())
+  code          String        @unique
+  discountType  String        // "PERCENTAGE" or "FIXED"
+  discountValue Float
+  maxDiscount   Float?
+  minPurchase   Float         @default(0)
+  startDate     DateTime
+  endDate       DateTime
+  usageLimit    Int?
+  usedCount     Int           @default(0)
+  active        Boolean       @default(true)
+  usages        CouponUsage[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model CouponUsage {
+  id        String   @id @default(cuid())
+  couponId  String
+  coupon    Coupon   @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orderId   String
+  createdAt DateTime @default(now())
+}
+
+model Review {
+  id               String   @id @default(cuid())
+  rating           Int
+  comment          String?  @db.Text
+  title            String?
+  verifiedPurchase Boolean  @default(false)
+  active           Boolean  @default(true)
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId        String
+  product          Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model CustomPoster {
+  id          String              @id @default(cuid())
+  imageUrl    String              // Uploaded original/cropped link
+  publicId    String?             // Cloudinary asset public ID
+  orientation Orientation         @default(PORTRAIT)
+  sizeName    String
+  frameName   String
+  paperType   String
+  price         Float
+  configuration Json?
+  cartItem      CartItem?
+  orderItem     OrderItem?
+  assets        CustomPosterAsset[]
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+}
+
+model CustomPosterAsset {
+  id             String       @id @default(cuid())
+  customPosterId String
+  customPoster   CustomPoster @relation(fields: [customPosterId], references: [id], onDelete: Cascade)
+  type           String       // "ORIGINAL", "CROPPED", "MOCKUP"
+  url            String
+  publicId       String?
+  createdAt      DateTime     @default(now())
+}
+
+model CustomPosterDesign {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name          String
+  configuration Json
+  previewImage  String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Shipping {
+  id             String             @id @default(cuid())
+  orderId        String             @unique
+  order          Order              @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  shipmentId     String?            // Shiprocket shipment reference
+  awbCode        String?            // Shiprocket AWB reference
+  courierName    String?
+  shipmentStatus ShipmentStatus     @default(PENDING)
+  tracking       ShipmentTracking[]
+  cost           Float              @default(0)
+  labelUrl       String?
+  manifestUrl    String?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+}
+
+model ShipmentTracking {
+  id          String   @id @default(cuid())
+  shippingId  String
+  shipping    Shipping @relation(fields: [shippingId], references: [id], onDelete: Cascade)
+  status      String
+  location    String?
+  description String?  @db.Text
+  timestamp   DateTime
+  createdAt   DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String   @db.Text
+  read      Boolean  @default(false)
+  type      String   // "ORDER_STATUS", "PROMOTION", etc.
+  createdAt DateTime @default(now())
+}
+
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  subject   String?
+  message   String   @db.Text
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
