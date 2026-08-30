@@ -1,10 +1,11 @@
 'use client';
 
 import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
 import Link from 'next/link';
 import Image from '@/components/SafeImage';
 import { useCart } from '@/context/CartContext';
-import { Trash2, Plus, Minus, ArrowLeft, ShoppingBag, Flame, AlertCircle, Tag, Check, Sparkles } from 'lucide-react';
+import { Trash2, Plus, Minus, ArrowLeft, ShoppingBag, AlertCircle, Tag, Check, Sparkles } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import ScrollReveal from '@/components/ScrollReveal';
 
@@ -470,17 +471,7 @@ export default function CartPage() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-neutral-950 border-t border-neutral-900/80 py-16 text-center text-xs text-neutral-500 space-y-4 mt-auto">
-        <div className="flex justify-center items-center gap-2.5">
-          <div className="bg-[#C1121F]/15 p-1 rounded-lg border border-[#C1121F]/20">
-            <Flame className="w-4 h-4 text-[#C1121F]" />
-          </div>
-          <span className="font-extrabold tracking-widest text-white text-[10px] uppercase">
-            HELLFIRE PRINTS
-          </span>
-        </div>
-        <p>© 2026 Hellfire Prints. All rights reserved. Premium Cinematic Poster Art.</p>
-      </footer>
+      <Footer />
     </div>
   );
 }

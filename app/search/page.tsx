@@ -1,7 +1,8 @@
 import prisma from '@/lib/prisma';
 import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
 import { ProductCard } from '@/components/ProductCatalog';
-import { Flame, Search, X } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 import Link from 'next/link';
 import { Prisma } from '@prisma/client';
 import ScrollReveal from '@/components/ScrollReveal';
@@ -188,19 +189,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
       </main>
 
       {/* Footer */}
-      <footer className="bg-neutral-950 border-t border-neutral-900/80 py-16 text-center text-xs text-neutral-500 space-y-6">
-        <div className="flex justify-center items-center gap-2.5">
-          <div className="bg-[#C1121F]/15 p-1 rounded-lg border border-[#C1121F]/20">
-            <Flame className="w-4 h-4 text-[#C1121F]" />
-          </div>
-          <span className="font-black tracking-widest text-white text-[11px] uppercase">
-            HELLFIRE PRINTS
-          </span>
-        </div>
-        <p className="max-w-md mx-auto text-[11px] leading-relaxed">
-          © 2026 Hellfire Prints. All rights reserved. Premium Cinematic Poster Art. Engineered with heavy-duty construction.
-        </p>
-      </footer>
+      <Footer />
     </div>
   );
 }

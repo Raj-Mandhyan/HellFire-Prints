@@ -2,8 +2,9 @@ import prisma from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
 import Link from 'next/link';
-import { ShoppingBag, ArrowLeft, Flame } from 'lucide-react';
+import { ShoppingBag, ArrowLeft } from 'lucide-react';
 import CheckoutPageClient from '@/components/CheckoutPageClient';
 import { calculateCartTotal } from '@/lib/discounts';
 
@@ -66,15 +67,7 @@ export default async function CheckoutPage() {
             </Link>
           </div>
         </main>
-        <footer className="bg-neutral-950 border-t border-neutral-900 py-12 text-center text-xs text-neutral-500 mt-auto">
-          <div className="flex justify-center items-center gap-2">
-            <Flame className="w-4 h-4 text-[#C1121F]" />
-            <span className="font-extrabold tracking-widest text-white text-[10px]">
-              HELLFIRE PRINTS
-            </span>
-          </div>
-          <p>© 2026 Hellfire Prints. All rights reserved. Premium Cinematic Poster Art.</p>
-        </footer>
+        <Footer />
       </div>
     );
   }
@@ -136,15 +129,7 @@ export default async function CheckoutPage() {
         />
       </main>
 
-      <footer className="bg-neutral-950 border-t border-neutral-900 py-12 text-center text-xs text-neutral-500 mt-auto">
-        <div className="flex justify-center items-center gap-2">
-          <Flame className="w-4 h-4 text-[#C1121F]" />
-          <span className="font-extrabold tracking-widest text-white text-[10px]">
-            HELLFIRE PRINTS
-          </span>
-        </div>
-        <p>© 2026 Hellfire Prints. All rights reserved. Premium Cinematic Poster Art.</p>
-      </footer>
+      <Footer />
     </div>
   );
 }

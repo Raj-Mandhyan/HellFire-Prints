@@ -1,8 +1,8 @@
 import prisma from '@/lib/prisma';
 import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
 import ProductDetails from '@/components/ProductDetails';
 import { notFound } from 'next/navigation';
-import { Flame } from 'lucide-react';
 import { getProductRatingSummaryAction } from '@/app/actions/review';
 import { getCurrentUser } from '@/lib/auth';
 
@@ -86,15 +86,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
       </main>
 
       {/* Footer */}
-      <footer className="bg-neutral-950 border-t border-neutral-900 py-12 text-center text-xs text-neutral-500 space-y-4 mt-16">
-        <div className="flex justify-center items-center gap-2">
-          <Flame className="w-4 h-4 text-[#C1121F]" />
-          <span className="font-extrabold tracking-widest text-white text-[10px]">
-            HELLFIRE PRINTS
-          </span>
-        </div>
-        <p>© 2026 Hellfire Prints. All rights reserved. Premium Cinematic Poster Art.</p>
-      </footer>
+      <Footer />
     </div>
   );
 }

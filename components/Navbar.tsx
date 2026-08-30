@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
-import { ShoppingCart, User, Flame, Search, X } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { ShoppingCart, User, Flame, Search, X, MoreVertical, ChevronRight } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 
 export default function Navbar() {
@@ -16,6 +16,9 @@ export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [searchVal, setSearchVal] = useState('');
+
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const handleSearchClick = () => {
     if (showSearch) {
@@ -48,7 +51,7 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  useEffect(() => {
+  const fetchSession = () => {
     fetch('/api/auth/session')
       .then((res) => res.json())
       .then((data) => {
@@ -57,10 +60,39 @@ export default function Navbar() {
           if (data.user?.role === 'ADMIN') {
             setIsAdmin(true);
           }
+        } else {
+          setIsAuthenticated(false);
+          setIsAdmin(false);
         }
       })
       .catch((err) => console.error('Session fetch error:', err));
+  };
+
+  useEffect(() => {
+    fetchSession();
   }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsMenuOpen(false);
+      }
+    };
+
+    if (isMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleEscape);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [isMenuOpen]);
 
   return (
     <header className={`sticky top-0 z-50 w-full transition-all duration-500 ${isScrolled
@@ -78,31 +110,41 @@ export default function Navbar() {
           </span>
         </Link>
 
-        {/* Center: Navigation Links */}
-        <nav className="hidden md:flex items-center gap-7 text-xs sm:text-sm text-neutral-400 font-extrabold uppercase tracking-widest">
-          <Link href="/" className="hover:text-white transition-colors relative py-1.5 group">
+        {/* Center: Primary Navigation Links */}
+        <nav className="hidden md:flex items-center gap-6 text-xs sm:text-sm text-neutral-400 font-extrabold uppercase tracking-widest">
+          <Link
+            href="/"
+            className={`hover:text-white transition-colors relative py-1.5 group ${
+              pathname === '/' ? 'text-white font-bold' : ''
+            }`}
+          >
             Home
-            <span className="absolute bottom-0 left-0 w-0 h-[2px] bg-gradient-to-r from-[#C1121F] to-[#f77f00] group-hover:w-full transition-all duration-300 rounded-full" />
+            <span
+              className={`absolute bottom-0 left-0 h-[2px] bg-gradient-to-r from-[#C1121F] to-[#FF4D4D] transition-all duration-300 rounded-full ${
+                pathname === '/' ? 'w-full' : 'w-0 group-hover:w-full'
+              }`}
+            />
+          </Link>
+          <Link
+            href="/#catalog"
+            className="hover:text-white transition-colors relative py-1.5 group"
+          >
+            Catalog
+            <span className="absolute bottom-0 left-0 w-0 h-[2px] bg-gradient-to-r from-[#C1121F] to-[#FF4D4D] group-hover:w-full transition-all duration-300 rounded-full" />
           </Link>
           <Link
             href="/custom-poster"
-            className={`hover:text-white transition-colors relative py-1.5 group ${pathname === '/custom-poster' ? 'text-[#FF4D4D] fiery-text-glow font-black' : ''
-              }`}
+            className={`hover:text-white transition-colors relative py-1.5 group ${
+              pathname === '/custom-poster' ? 'text-white font-bold' : ''
+            }`}
           >
-            Custom Poster
-            <span className={`absolute bottom-0 left-0 h-[2px] bg-gradient-to-r from-[#C1121F] to-[#f77f00] transition-all duration-300 rounded-full ${pathname === '/custom-poster' ? 'w-full' : 'w-0 group-hover:w-full'
-              }`} />
+            Custom Poster Studio
+            <span
+              className={`absolute bottom-0 left-0 h-[2px] bg-gradient-to-r from-[#C1121F] to-[#FF4D4D] transition-all duration-300 rounded-full ${
+                pathname === '/custom-poster' ? 'w-full' : 'w-0 group-hover:w-full'
+              }`}
+            />
           </Link>
-          {isAdmin && (
-            <Link href="/test-db" className="hover:text-white transition-all text-xs bg-neutral-900/60 border border-neutral-800/80 px-3.5 py-1.5 rounded-full text-[#FF4D4D] hover:border-[#C1121F]/60 transition-all duration-300 hover:shadow-[0_0_12px_rgba(193,18,31,0.25)] hover:scale-105 active:scale-98">Live DB Test</Link>
-          )}
-          {isAdmin && (
-            <Link href="/admin" className="hover:text-white transition-all text-xs bg-[#C1121F]/15 border border-[#C1121F]/40 px-3.5 py-1.5 rounded-full text-[#FF4D4D] font-extrabold tracking-wider hover:bg-[#C1121F]/30 hover:border-[#C1121F]/70 hover:shadow-[0_0_15px_rgba(193,18,31,0.35)] transition-all duration-300 hover:scale-105 active:scale-98">Admin</Link>
-          )}
-          <a href="#catalog" className="hover:text-white transition-colors relative py-1.5 group">
-            Catalog
-            <span className="absolute bottom-0 left-0 w-0 h-[2px] bg-gradient-to-r from-[#C1121F] to-[#f77f00] group-hover:w-full transition-all duration-300 rounded-full" />
-          </a>
         </nav>
 
         {/* Right Side: Quick Action Icons */}
@@ -146,8 +188,6 @@ export default function Navbar() {
             </button>
           </div>
 
-
-
           <Link href="/cart" className="p-2.5 hover:text-white transition-all hover:scale-110 active:scale-90 relative" aria-label="Cart">
             <ShoppingCart className="w-4.5 h-4.5" />
             {cartCount > 0 && (
@@ -160,6 +200,192 @@ export default function Navbar() {
           <Link href={isAuthenticated ? "/account" : "/login"} className="p-2.5 hover:text-white transition-all hover:scale-110 active:scale-90" aria-label="Account">
             <User className="w-4.5 h-4.5" />
           </Link>
+
+          {/* Three-Dot Popover Menu */}
+          <div className="relative flex items-center" ref={menuRef}>
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className={`p-2.5 transition-all hover:scale-110 active:scale-90 cursor-pointer ${
+                isMenuOpen ? 'text-white scale-110' : 'hover:text-white text-neutral-450'
+              }`}
+              aria-label="Toggle Navigation Menu"
+              aria-expanded={isMenuOpen}
+            >
+              <MoreVertical className="w-4.5 h-4.5" />
+            </button>
+
+            {isMenuOpen && (
+              <div className="absolute right-0 top-11 w-72 premium-glass rounded-2xl p-4.5 shadow-[0_20px_50px_rgba(0,0,0,0.85)] border border-neutral-900/80 z-50 animate-fade-in text-left space-y-4">
+                
+                {/* Category: Account */}
+                <div className="space-y-1.5">
+                  <h4 className="text-[9px] text-neutral-500 font-extrabold uppercase tracking-widest border-b border-neutral-900/60 pb-1.5 pl-1 select-none">
+                    My Account
+                  </h4>
+                  <ul className="space-y-1 text-xs font-semibold uppercase tracking-wider text-neutral-300">
+                    {isAuthenticated ? (
+                      <li>
+                        <Link
+                          href="/account"
+                          onClick={() => setIsMenuOpen(false)}
+                          className={`flex items-center justify-between px-2.5 py-2 rounded-xl transition-all ${
+                            pathname === '/account' ? 'bg-[#C1121F]/15 border border-[#C1121F]/30 text-white font-bold' : 'hover:bg-neutral-900/40 border border-transparent hover:text-white'
+                          }`}
+                        >
+                          <span>Dashboard & Orders</span>
+                          <ChevronRight className="w-3.5 h-3.5 opacity-40" />
+                        </Link>
+                      </li>
+                    ) : (
+                      <>
+                        <li>
+                          <Link
+                            href="/login"
+                            onClick={() => setIsMenuOpen(false)}
+                            className={`flex items-center justify-between px-2.5 py-2 rounded-xl transition-all ${
+                              pathname === '/login' ? 'bg-[#C1121F]/15 border border-[#C1121F]/30 text-white font-bold' : 'hover:bg-neutral-900/40 border border-transparent hover:text-white'
+                            }`}
+                          >
+                            <span>Sign In</span>
+                            <ChevronRight className="w-3.5 h-3.5 opacity-40" />
+                          </Link>
+                        </li>
+                        <li>
+                          <Link
+                            href="/signup"
+                            onClick={() => setIsMenuOpen(false)}
+                            className={`flex items-center justify-between px-2.5 py-2 rounded-xl transition-all ${
+                              pathname === '/signup' ? 'bg-[#C1121F]/15 border border-[#C1121F]/30 text-white font-bold' : 'hover:bg-neutral-900/40 border border-transparent hover:text-white'
+                            }`}
+                          >
+                            <span>Register</span>
+                            <ChevronRight className="w-3.5 h-3.5 opacity-40" />
+                          </Link>
+                        </li>
+                      </>
+                    )}
+                  </ul>
+                </div>
+
+                {/* Category: Admin (Conditional) */}
+                {isAdmin && (
+                  <div className="space-y-1.5">
+                    <h4 className="text-[9px] text-neutral-500 font-extrabold uppercase tracking-widest border-b border-neutral-900/60 pb-1.5 pl-1 select-none">
+                      Admin Clearance
+                    </h4>
+                    <ul className="space-y-1 text-xs font-semibold uppercase tracking-wider text-neutral-300">
+                      <li>
+                        <Link
+                          href="/admin"
+                          onClick={() => setIsMenuOpen(false)}
+                          className={`flex items-center justify-between px-2.5 py-2 rounded-xl transition-all ${
+                            pathname.startsWith('/admin') ? 'bg-[#C1121F]/15 border border-[#C1121F]/30 text-[#FF4D4D] font-bold' : 'hover:bg-neutral-900/40 border border-transparent hover:text-white'
+                          }`}
+                        >
+                          <span>Admin Control Panel</span>
+                          <ChevronRight className="w-3.5 h-3.5 text-[#C1121F]" />
+                        </Link>
+                      </li>
+                      <li>
+                        <Link
+                          href="/test-db"
+                          onClick={() => setIsMenuOpen(false)}
+                          className={`flex items-center justify-between px-2.5 py-2 rounded-xl transition-all ${
+                            pathname === '/test-db' ? 'bg-[#C1121F]/15 border border-[#C1121F]/30 text-[#FF4D4D] font-bold' : 'hover:bg-neutral-900/40 border border-transparent hover:text-white'
+                          }`}
+                        >
+                          <span>Live Database Test</span>
+                          <ChevronRight className="w-3.5 h-3.5 text-[#C1121F]" />
+                        </Link>
+                      </li>
+                    </ul>
+                  </div>
+                )}
+
+                {/* Category: Company Info */}
+                <div className="space-y-1.5">
+                  <h4 className="text-[9px] text-neutral-500 font-extrabold uppercase tracking-widest border-b border-neutral-900/60 pb-1.5 pl-1 select-none">
+                    Information
+                  </h4>
+                  <ul className="space-y-1 text-[11px] font-semibold text-neutral-400">
+                    <li>
+                      <Link
+                        href="/about-us"
+                        onClick={() => setIsMenuOpen(false)}
+                        className={`flex items-center justify-between px-2 py-1.5 rounded-lg transition-all ${
+                          pathname === '/about-us' ? 'bg-neutral-900 text-white font-bold' : 'hover:bg-neutral-900/30 hover:text-neutral-200'
+                        }`}
+                      >
+                        <span>About Us</span>
+                        <ChevronRight className="w-3.5 h-3.5 opacity-25" />
+                      </Link>
+                    </li>
+                    <li>
+                      <Link
+                        href="/contact-us"
+                        onClick={() => setIsMenuOpen(false)}
+                        className={`flex items-center justify-between px-2 py-1.5 rounded-lg transition-all ${
+                          pathname === '/contact-us' ? 'bg-neutral-900 text-white font-bold' : 'hover:bg-neutral-900/30 hover:text-neutral-200'
+                        }`}
+                      >
+                        <span>Contact Us</span>
+                        <ChevronRight className="w-3.5 h-3.5 opacity-25" />
+                      </Link>
+                    </li>
+                    <li>
+                      <Link
+                        href="/terms-and-conditions"
+                        onClick={() => setIsMenuOpen(false)}
+                        className={`flex items-center justify-between px-2 py-1.5 rounded-lg transition-all ${
+                          pathname === '/terms-and-conditions' ? 'bg-neutral-900 text-white font-bold' : 'hover:bg-neutral-900/30 hover:text-neutral-200'
+                        }`}
+                      >
+                        <span>Terms & Conditions</span>
+                        <ChevronRight className="w-3.5 h-3.5 opacity-25" />
+                      </Link>
+                    </li>
+                    <li>
+                      <Link
+                        href="/privacy-policy"
+                        onClick={() => setIsMenuOpen(false)}
+                        className={`flex items-center justify-between px-2 py-1.5 rounded-lg transition-all ${
+                          pathname === '/privacy-policy' ? 'bg-neutral-900 text-white font-bold' : 'hover:bg-neutral-900/30 hover:text-neutral-200'
+                        }`}
+                      >
+                        <span>Privacy Policy</span>
+                        <ChevronRight className="w-3.5 h-3.5 opacity-25" />
+                      </Link>
+                    </li>
+                    <li>
+                      <Link
+                        href="/shipping-policy"
+                        onClick={() => setIsMenuOpen(false)}
+                        className={`flex items-center justify-between px-2 py-1.5 rounded-lg transition-all ${
+                          pathname === '/shipping-policy' ? 'bg-neutral-900 text-white font-bold' : 'hover:bg-neutral-900/30 hover:text-neutral-200'
+                        }`}
+                      >
+                        <span>Shipping Policy</span>
+                        <ChevronRight className="w-3.5 h-3.5 opacity-25" />
+                      </Link>
+                    </li>
+                    <li>
+                      <Link
+                        href="/cancellation-and-refund-policy"
+                        onClick={() => setIsMenuOpen(false)}
+                        className={`flex items-center justify-between px-2 py-1.5 rounded-lg transition-all ${
+                          pathname === '/cancellation-and-refund-policy' ? 'bg-neutral-900 text-white font-bold' : 'hover:bg-neutral-900/30 hover:text-neutral-200'
+                        }`}
+                      >
+                        <span>Refund Policy</span>
+                        <ChevronRight className="w-3.5 h-3.5 opacity-25" />
+                      </Link>
+                    </li>
+                  </ul>
+                </div>
+
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </header>

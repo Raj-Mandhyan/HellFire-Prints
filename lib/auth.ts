@@ -58,7 +58,7 @@ export function verifyToken(token: string): TokenPayload | null {
     if (signature !== expectedSignature) return null;
 
     const payload = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8')) as TokenPayload;
-    
+
     // Check expiration
     if (payload.exp && Date.now() / 1000 > payload.exp) {
       return null;

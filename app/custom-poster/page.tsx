@@ -7,6 +7,7 @@
 
 import React, { useState, useEffect, useRef, useMemo, Suspense } from 'react';
 import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
 import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -1806,21 +1807,7 @@ function ConfiguratorContent() {
         </div>
       )}
 
-      <ScrollReveal fiery={false}>
-        <footer className="bg-neutral-950 border-t border-neutral-900/80 py-16 text-center text-xs text-neutral-500 mt-16 space-y-4">
-          <div className="flex justify-center items-center gap-2.5">
-            <div className="bg-[#C1121F]/15 p-1 rounded-lg border border-[#C1121F]/20">
-              <Flame className="w-4 h-4 text-[#C1121F]" />
-            </div>
-            <span className="font-extrabold tracking-widest text-white text-[10px] uppercase">
-              HELLFIRE PRINTS
-            </span>
-          </div>
-          <p className="max-w-md mx-auto text-[11px] leading-relaxed">
-            © 2026 Hellfire Prints. All rights reserved. Premium Cinematic Custom Poster Art.
-          </p>
-        </footer>
-      </ScrollReveal>
+      <Footer />
     </div>
   );
 }

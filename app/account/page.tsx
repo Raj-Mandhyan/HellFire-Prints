@@ -2,8 +2,9 @@ import prisma from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
 import { logoutAction } from '@/app/actions/auth';
-import { Flame, LogOut, Package, MapPin, User, Mail, Phone, Calendar, ArrowRight } from 'lucide-react';
+import { LogOut, Package, MapPin, User, Mail, Phone, Calendar, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import ScrollReveal from '@/components/ScrollReveal';
 
@@ -217,17 +218,7 @@ export default async function AccountPage() {
   </main>
 
       {/* Footer */}
-      <ScrollReveal fiery={false}>
-        <footer className="bg-neutral-950 border-t border-neutral-900 py-12 text-center text-xs text-neutral-500 space-y-4">
-          <div className="flex justify-center items-center gap-2">
-            <Flame className="w-4 h-4 text-[#C1121F]" />
-            <span className="font-extrabold tracking-widest text-white text-[10px]">
-              HELLFIRE PRINTS
-            </span>
-          </div>
-          <p>© 2026 Hellfire Prints. All rights reserved. Premium Cinematic Poster Art.</p>
-        </footer>
-      </ScrollReveal>
+      <Footer />
     </div>
   );
 }
