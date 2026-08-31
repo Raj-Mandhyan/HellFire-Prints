@@ -39,11 +39,15 @@ export async function initiatePaymentAction(input: InitiatePaymentInput) {
     return { error: 'You must be logged in to initiate checkout.' };
   }
 
-  const keyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
+  const keyId = process.env.RAZORPAY_KEY_ID;
   const keySecret = process.env.RAZORPAY_KEY_SECRET;
 
-  if (!keyId || !keySecret || keyId === 'rzp_test_yourKeyIdHere' || keySecret === 'yourRazorpayKeySecretHere') {
-    return { error: 'Razorpay keys are not configured. Please add active rzp_test keys in the .env file.' };
+  if (!keyId || !keySecret) {
+    return { error: 'Razorpay keys are not configured on the server.' };
+  }
+
+  if (!keyId.startsWith('rzp_live_')) {
+    return { error: 'Invalid Razorpay configuration: Live payment mode requires credentials starting with rzp_live_.' };
   }
 
   const { selectedAddressId, newAddress, additionalNote } = input;
@@ -233,11 +237,24 @@ export async function initiatePaymentAction(input: InitiatePaymentInput) {
       key_secret: keySecret,
     });
 
-    const rzpOrder = await rzp.orders.create({
-      amount: Math.round(total * 100), // paise conversion
-      currency: 'INR',
-      receipt: localOrder.id,
-    });
+    let rzpOrder;
+    try {
+      rzpOrder = await rzp.orders.create({
+        amount: Math.round(total * 100), // paise conversion
+        currency: 'INR',
+        receipt: localOrder.id,
+      });
+    } catch (rzpErr: any) {
+      console.error('Razorpay order creation API call failed:', rzpErr.message || rzpErr);
+      await prisma.order.update({
+        where: { id: localOrder.id },
+        data: {
+          paymentStatus: 'FAILED',
+          orderStatus: 'CANCELLED',
+        },
+      });
+      return { error: 'Payment gateway order creation failed. Please try again later.' };
+    }
 
     // Save Razorpay order ID
     await prisma.order.update({
@@ -270,9 +287,14 @@ export async function verifyPaymentAction(input: VerifyPaymentInput) {
     return { error: 'You must be logged in to verify payment.' };
   }
 
+  const keyId = process.env.RAZORPAY_KEY_ID;
   const keySecret = process.env.RAZORPAY_KEY_SECRET;
-  if (!keySecret) {
-    return { error: 'Razorpay credentials secret key is missing.' };
+  if (!keyId || !keySecret) {
+    return { error: 'Razorpay credentials are not configured on the server.' };
+  }
+
+  if (!keyId.startsWith('rzp_live_')) {
+    return { error: 'Invalid Razorpay configuration: Live payment mode requires credentials starting with rzp_live_.' };
   }
 
   const { orderId, razorpay_order_id, razorpay_payment_id, razorpay_signature } = input;
@@ -309,6 +331,32 @@ export async function verifyPaymentAction(input: VerifyPaymentInput) {
 
     if (genBuf.length !== recBuf.length || !timingSafeEqual(genBuf, recBuf)) {
       return { error: 'Payment signature validation failed. Mismatch detected.' };
+    }
+
+    // Fetch the payment details from Razorpay to verify status from source of truth
+    const rzp = new Razorpay({
+      key_id: keyId,
+      key_secret: keySecret,
+    });
+
+    let payment;
+    try {
+      payment = await rzp.payments.fetch(razorpay_payment_id);
+    } catch (fetchErr: any) {
+      console.error('Failed to fetch payment details from Razorpay:', fetchErr.message || fetchErr);
+      return { error: 'Could not verify payment status with the gateway. Please contact support.' };
+    }
+
+    if (!payment) {
+      return { error: 'Payment details not found on the gateway.' };
+    }
+
+    if (payment.order_id !== razorpay_order_id) {
+      return { error: 'Payment order reference mismatch.' };
+    }
+
+    if (payment.status !== 'captured' && payment.status !== 'authorized') {
+      return { error: `Payment status is invalid. Status: ${payment.status}` };
     }
 
     // Process order confirmations

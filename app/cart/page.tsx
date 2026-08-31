@@ -337,13 +337,13 @@ export default function CartPage() {
                   ) : null}
 
                   <div className="flex justify-between items-center">
-                    <span className="text-neutral-450">Delivery</span>
+                    <span className="text-neutral-450">Delivery Charges</span>
                     <span className={`font-black uppercase tracking-widest text-[9px] px-2.5 py-1 rounded-lg ${
                       cart.shippingFee === 0 
                         ? 'text-emerald-400 bg-emerald-950/40 border border-emerald-900/60' 
                         : 'text-neutral-350 bg-neutral-950 border border-neutral-900'
                     }`}>
-                      {cart.shippingFee === 0 ? 'Free Delivery' : `₹${cart.shippingFee}`}
+                      {cart.shippingFee === 0 ? '₹0' : `₹${cart.shippingFee}`}
                     </span>
                   </div>
                   <div className="flex justify-between border-t border-neutral-900 pt-5 text-sm sm:text-base font-black text-white">

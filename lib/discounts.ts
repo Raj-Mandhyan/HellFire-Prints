@@ -123,7 +123,8 @@ export async function calculateCartTotal(cartId: string, couponCodeOverride?: st
 
   // 4. Shipping Fee Calculation
   // FREE SHIPPING on orders above ₹1,999 (calculated on original subtotal)
-  const shippingFee = subtotal >= 1999 ? 0 : 150;
+  // const shippingFee = subtotal >= 1999 ? 0 : 150;
+  const shippingFee = 0; // Forced to ₹0 per user request
 
   // 5. Total calculation
   const total = Math.max(0, subtotal - totalDiscount + shippingFee);

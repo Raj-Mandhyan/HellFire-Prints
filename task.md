@@ -1,0 +1,7 @@
+- [x] Modify `lib/discounts.ts` to set shipping fee to ₹0
+- [x] Update labels and values in `app/cart/page.tsx`
+- [x] Update labels and values in `components/CheckoutPageClient.tsx`
+- [x] Update labels and values in `app/account/orders/[orderId]/page.tsx`
+- [x] Update labels and values in `app/admin/orders/[id]/page.tsx`
+- [x] Run `npm run build` and verify
+- [x] Write walkthrough report

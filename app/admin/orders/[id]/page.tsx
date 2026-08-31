@@ -205,8 +205,8 @@ export default async function AdminOrderDetailPage({ params }: OrderDetailPagePr
                 </div>
               )}
               <div className="flex justify-between">
-                <span>Shipping & handling</span>
-                <span>{order.shippingFee > 0 ? formatCurrency(order.shippingFee) : 'FREE'}</span>
+                <span>Delivery Charges</span>
+                <span>{order.shippingFee > 0 ? formatCurrency(order.shippingFee) : '₹0'}</span>
               </div>
               <div className="flex justify-between">
                 <span>Tax GST (included)</span>

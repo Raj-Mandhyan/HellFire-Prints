@@ -160,7 +160,7 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
                   <span className="font-semibold text-white">₹{order.subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-neutral-500">Shipping (India)</span>
+                  <span className="text-neutral-500">Delivery Charges</span>
                   <span className="font-semibold text-white">₹{order.shippingFee.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">

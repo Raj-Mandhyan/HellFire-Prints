@@ -152,6 +152,8 @@ export function ProductCard({ product }: ProductCardProps) {
         {hasMultipleImages && (
           <>
             <button
+              type="button"
+              suppressHydrationWarning
               onClick={(e) => {
                 e.stopPropagation();
                 e.preventDefault();
@@ -163,6 +165,8 @@ export function ProductCard({ product }: ProductCardProps) {
               <ChevronLeft className="w-4 h-4" />
             </button>
             <button
+              type="button"
+              suppressHydrationWarning
               onClick={(e) => {
                 e.stopPropagation();
                 e.preventDefault();
@@ -182,6 +186,8 @@ export function ProductCard({ product }: ProductCardProps) {
             {images.map((_, idx) => (
               <button
                 key={idx}
+                type="button"
+                suppressHydrationWarning
                 onClick={(e) => {
                   e.stopPropagation();
                   e.preventDefault();
@@ -347,6 +353,8 @@ export default function ProductCatalog({ products }: ProductCatalogProps) {
           {categories.map((category) => (
             <button
               key={category}
+              type="button"
+              suppressHydrationWarning
               onClick={() => setSelectedCategory(category)}
               className={`px-4.5 py-2 text-[10px] font-black uppercase tracking-widest rounded-full border transition-all duration-350 cursor-pointer flex-shrink-0 active:scale-95 ${
                 selectedCategory === category
@@ -373,6 +381,8 @@ export default function ProductCatalog({ products }: ProductCatalogProps) {
         <div className="text-center py-24 bg-neutral-950/20 border border-neutral-900 rounded-3xl max-w-lg mx-auto space-y-4">
           <p className="text-neutral-500 text-xs font-bold uppercase tracking-widest">No posters match your query.</p>
           <button
+            type="button"
+            suppressHydrationWarning
             onClick={() => {
               setSelectedCategory('All');
               setSearchQuery('');

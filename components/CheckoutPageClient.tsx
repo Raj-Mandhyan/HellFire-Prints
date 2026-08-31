@@ -503,13 +503,13 @@ export default function CheckoutPageClient({
                 </div>
               ) : null}
               <div className="flex justify-between items-center">
-                <span className="text-neutral-500">Delivery</span>
+                <span className="text-neutral-500">Delivery Charges</span>
                 <span className={`font-black uppercase tracking-widest text-[9px] px-2.5 py-1 rounded-lg ${
                   calculations.shippingFee === 0 
                     ? 'text-emerald-400 bg-emerald-950/40 border border-emerald-900/60' 
                     : 'text-neutral-350 bg-neutral-950 border border-neutral-900'
                 }`}>
-                  {calculations.shippingFee === 0 ? 'Free Delivery' : `₹${calculations.shippingFee}`}
+                  {calculations.shippingFee === 0 ? '₹0' : `₹${calculations.shippingFee}`}
                 </span>
               </div>
               <div className="flex justify-between">
