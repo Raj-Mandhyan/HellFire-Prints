@@ -14,7 +14,7 @@ async function generateUniqueSlug(title: string, currentProductId?: string): Pro
     .trim()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/(^-|-$)/g, '');
-  
+
   if (!baseSlug) baseSlug = 'product';
 
   let uniqueSlug = baseSlug;
@@ -94,19 +94,71 @@ export async function createProductAction(prevState: unknown, formData: FormData
     // Parse image URLs
     const imageUrls = imagesRaw
       ? imagesRaw
-          .split(/[\n,]/)
-          .map((url) => url.trim())
-          .filter((url) => url.length > 0)
+        .split(/[\n,]/)
+        .map((url) => url.trim())
+        .filter((url) => url.length > 0)
       : [];
 
-    for (const url of imageUrls) {
-      const valResult = await validateImageUrl(url);
-      if (!valResult.isValid) {
-        return { error: `Invalid product image URL. Use a direct public HTTPS image URL or upload an image. Details: ${valResult.error}` };
+    // Validate image URLs concurrently outside any transaction
+    const validationResults = await Promise.all(
+      imageUrls.map(async (url) => {
+        const valResult = await validateImageUrl(url);
+        return { url, ...valResult };
+      })
+    );
+
+    for (const res of validationResults) {
+      if (!res.isValid) {
+        return { error: `Invalid product image URL. Use a direct public HTTPS image URL or upload an image. Details: ${res.error}` };
       }
     }
 
-    // Run creation inside database transaction for safety
+    // Prepare image records in memory outside the transaction
+    const imageRecords = imageUrls.length > 0
+      ? imageUrls.map((url, i) => ({
+        url,
+        alt: `${title} Image ${i + 1}`,
+      }))
+      : [
+        {
+          url: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&w=600&q=80',
+          alt: `${title} Default Placeholder`,
+        },
+      ];
+
+    // Pre-fetch ONLY the 4 valid sizes (A3, A4, A5, A6)
+    const VALID_SIZES = ['A3', 'A4', 'A5', 'A6'];
+    const dbSizes = await prisma.productSize.findMany({
+      where: { name: { in: VALID_SIZES } },
+    });
+    // Order strictly: A3, A4, A5, A6
+    const sizes = dbSizes.sort(
+      (a, b) => VALID_SIZES.indexOf(a.name) - VALID_SIZES.indexOf(b.name)
+    );
+
+    // Pre-calculate variant records solely per size in memory outside the transaction
+    const variantRecords: Array<{
+      sizeId: string;
+      additionalPrice: number;
+      stock: number;
+      SKU: string;
+      frameId: string | null;
+      paperType: string | null;
+    }> = sizes.map((size) => {
+      const cleanedSize = size.name.replace(/\s+/g, '');
+      const variantSKU = `${SKU}-${cleanedSize}`.replace(/[^a-zA-Z0-9-]/g, '');
+
+      return {
+        sizeId: size.id,
+        additionalPrice: size.additionalPrice,
+        stock, // sync initial stock
+        SKU: variantSKU,
+        frameId: null,
+        paperType: null,
+      };
+    });
+
+    // Run creation inside minimal atomic database transaction (only 4 batched queries)
     await prisma.$transaction(async (tx) => {
       // 1. Create Product
       const product = await tx.product.create({
@@ -134,58 +186,24 @@ export async function createProductAction(prevState: unknown, formData: FormData
         },
       });
 
-      // 3. Create Product Images
-      if (imageUrls.length > 0) {
-        for (let i = 0; i < imageUrls.length; i++) {
-          await tx.productImage.create({
-            data: {
-              url: imageUrls[i],
-              alt: `${title} Image ${i + 1}`,
-              productId: product.id,
-            },
-          });
-        }
-      } else {
-        // Create one default placeholder image
-        await tx.productImage.create({
-          data: {
-            url: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&w=600&q=80',
-            alt: `${title} Default Placeholder`,
+      // 3. Batch Create Product Images (single SQL insert)
+      if (imageRecords.length > 0) {
+        await tx.productImage.createMany({
+          data: imageRecords.map((img) => ({
+            ...img,
             productId: product.id,
-          },
+          })),
         });
       }
 
-      // 4. Auto-generate Product Variants (Sizes x Frames x Paper Types)
-      const sizes = await tx.productSize.findMany();
-      const frames = await tx.productFrame.findMany();
-      const paperTypes = ['Matte Premium (300 GSM)', 'Glossy Metallic (320 GSM)'];
-
-      for (const size of sizes) {
-        for (const frame of frames) {
-          for (const paper of paperTypes) {
-            const additionalPrice =
-              size.additionalPrice + frame.additionalPrice + (paper.includes('Glossy') ? 49.0 : 0.0);
-
-            // Clean SKU name
-            const cleanedSize = size.name.replace(/\s+/g, '');
-            const cleanedFrame = frame.name.substring(0, 3).toUpperCase().replace(/\s+/g, '');
-            const cleanedPaper = paper.includes('Glossy') ? 'GLO' : 'MAT';
-            const variantSKU = `${SKU}-${cleanedSize}-${cleanedFrame}-${cleanedPaper}`.replace(/[^a-zA-Z0-9-]/g, '');
-
-            await tx.productVariant.create({
-              data: {
-                productId: product.id,
-                sizeId: size.id,
-                frameId: frame.id,
-                paperType: paper,
-                additionalPrice,
-                stock, // sync initial stock
-                SKU: variantSKU,
-              },
-            });
-          }
-        }
+      // 4. Batch Create Product Variants (single SQL insert for all variants)
+      if (variantRecords.length > 0) {
+        await tx.productVariant.createMany({
+          data: variantRecords.map((variant) => ({
+            ...variant,
+            productId: product.id,
+          })),
+        });
       }
     });
 
@@ -237,15 +255,21 @@ export async function updateProductAction(prevState: unknown, formData: FormData
 
     const parsedImageUrls = imagesRaw
       ? imagesRaw
-          .split(/[\n,]/)
-          .map((url) => url.trim())
-          .filter((url) => url.length > 0)
+        .split(/[\n,]/)
+        .map((url) => url.trim())
+        .filter((url) => url.length > 0)
       : [];
 
-    for (const url of parsedImageUrls) {
-      const valResult = await validateImageUrl(url);
-      if (!valResult.isValid) {
-        return { error: `Invalid product image URL. Use a direct public HTTPS image URL or upload an image. Details: ${valResult.error}` };
+    const validationResults = await Promise.all(
+      parsedImageUrls.map(async (url) => {
+        const valResult = await validateImageUrl(url);
+        return { url, ...valResult };
+      })
+    );
+
+    for (const res of validationResults) {
+      if (!res.isValid) {
+        return { error: `Invalid product image URL. Use a direct public HTTPS image URL or upload an image. Details: ${res.error}` };
       }
     }
 
@@ -298,16 +322,14 @@ export async function updateProductAction(prevState: unknown, formData: FormData
       if (imagesRaw !== null && parsedImageUrls.length > 0) {
         // Delete old images
         await tx.productImage.deleteMany({ where: { productId: id } });
-        // Insert new images
-        for (let i = 0; i < parsedImageUrls.length; i++) {
-          await tx.productImage.create({
-            data: {
-              url: parsedImageUrls[i],
-              alt: `${title} Image ${i + 1}`,
-              productId: id,
-            },
-          });
-        }
+        // Batch insert new images in a single SQL operation
+        await tx.productImage.createMany({
+          data: parsedImageUrls.map((url, i) => ({
+            url,
+            alt: `${title} Image ${i + 1}`,
+            productId: id,
+          })),
+        });
       }
     });
 
@@ -449,7 +471,7 @@ export async function updateOrderStatusAction(orderId: string, orderStatus: Orde
             shipmentStatus: shipmentStatusStr as ShipmentStatus,
           },
         });
-        
+
         // Add a Tracking Entry
         await tx.shipmentTracking.create({
           data: {

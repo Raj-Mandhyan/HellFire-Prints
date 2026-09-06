@@ -5,12 +5,10 @@ export interface CustomPosterConfig {
 }
 
 export const POSTER_SIZES = [
-  { name: 'A4', dimensions: '21 x 29.7 cm', additionalPrice: 0, aspectRatio: 21 / 29.7 },
   { name: 'A3', dimensions: '29.7 x 42 cm', additionalPrice: 199, aspectRatio: 29.7 / 42 },
-  { name: 'A2', dimensions: '42 x 59.4 cm', additionalPrice: 449, aspectRatio: 42 / 59.4 },
-  { name: '12 × 18 inch', dimensions: '30.5 x 45.7 cm', additionalPrice: 249, aspectRatio: 12 / 18 },
-  { name: '18 × 24 inch', dimensions: '45.7 x 61 cm', additionalPrice: 549, aspectRatio: 18 / 24 },
-  { name: '24 × 36 inch', dimensions: '61 x 91.4 cm', additionalPrice: 999, aspectRatio: 24 / 36 },
+  { name: 'A4', dimensions: '21 x 29.7 cm', additionalPrice: 0, aspectRatio: 21 / 29.7 },
+  { name: 'A5', dimensions: '14.8 x 21 cm', additionalPrice: 0, aspectRatio: 14.8 / 21 },
+  { name: 'A6', dimensions: '10.5 x 14.8 cm', additionalPrice: 0, aspectRatio: 10.5 / 14.8 },
 ];
 
 export const PAPER_TYPES = [

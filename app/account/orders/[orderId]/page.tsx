@@ -132,10 +132,10 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
                           {isCustom ? 'Custom Poster Print' : item.title}
                         </span>
                         <span className="text-[9px] text-neutral-500 uppercase tracking-wide block">
-                          Size: {item.sizeName} {item.sizeDimensions ? `(${item.sizeDimensions})` : ''} | Finish: {item.paperType} | Frame: {item.frameName}
+                          Size: {item.sizeName} {item.sizeDimensions ? `(${item.sizeDimensions})` : ''}{item.paperType ? ` | Finish: ${item.paperType}` : ''}{item.frameName ? ` | Frame: ${item.frameName}` : ''}
                         </span>
                         <span className="text-[10px] text-neutral-600 font-mono block">Qty: {item.quantity} × ₹{item.price.toFixed(0)}</span>
-                        
+
                         {isCustom && item.customPoster?.imageUrl && (
                           <a
                             href={item.customPoster.imageUrl}

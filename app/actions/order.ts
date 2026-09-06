@@ -196,8 +196,8 @@ export async function initiatePaymentAction(input: InitiatePaymentInput) {
           quantity: item.quantity,
           sizeName: item.variant?.size?.name || 'A4',
           sizeDimensions: item.variant?.size?.dimensions || '',
-          frameName: item.variant?.frame?.name || 'No Frame',
-          paperType: item.variant?.paperType || 'Matte',
+          frameName: item.variant?.frame?.name || null,
+          paperType: item.variant?.paperType || null,
         };
       }
     });
@@ -244,8 +244,8 @@ export async function initiatePaymentAction(input: InitiatePaymentInput) {
         currency: 'INR',
         receipt: localOrder.id,
       });
-    } catch (rzpErr: any) {
-      console.error('Razorpay order creation API call failed:', rzpErr.message || rzpErr);
+    } catch (rzpErr: unknown) {
+      console.error('Razorpay order creation API call failed:', (rzpErr as Error)?.message || rzpErr);
       await prisma.order.update({
         where: { id: localOrder.id },
         data: {
@@ -342,8 +342,8 @@ export async function verifyPaymentAction(input: VerifyPaymentInput) {
     let payment;
     try {
       payment = await rzp.payments.fetch(razorpay_payment_id);
-    } catch (fetchErr: any) {
-      console.error('Failed to fetch payment details from Razorpay:', fetchErr.message || fetchErr);
+    } catch (fetchErr: unknown) {
+      console.error('Failed to fetch payment details from Razorpay:', (fetchErr as Error)?.message || fetchErr);
       return { error: 'Could not verify payment status with the gateway. Please contact support.' };
     }
 

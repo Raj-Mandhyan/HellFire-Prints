@@ -80,8 +80,8 @@ export default async function CheckoutPage() {
     let productName = item.product.title;
     let productImage = item.product.images?.[0]?.url || '';
     let sizeName = item.variant?.size?.name || 'A4';
-    let frameName = item.variant?.frame?.name || 'No Frame';
-    let paperType = item.variant?.paperType || 'Matte';
+    let frameName = item.variant?.frame?.name || '';
+    let paperType = item.variant?.paperType || '';
 
     if (item.customPosterId && item.customPoster) {
       unitPrice = item.customPoster.price;

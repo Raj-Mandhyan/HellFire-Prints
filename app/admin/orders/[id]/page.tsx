@@ -94,13 +94,12 @@ export default async function AdminOrderDetailPage({ params }: OrderDetailPagePr
           </div>
           <div>
             <span
-              className={`inline-block px-3 py-1 text-xs font-black uppercase rounded-lg border ${
-                order.orderStatus === 'DELIVERED'
+              className={`inline-block px-3 py-1 text-xs font-black uppercase rounded-lg border ${order.orderStatus === 'DELIVERED'
                   ? 'bg-emerald-950/40 border-emerald-900 text-emerald-400'
                   : order.orderStatus === 'CANCELLED'
-                  ? 'bg-neutral-900 border-neutral-850 text-neutral-400'
-                  : 'bg-amber-950/40 border-amber-900 text-amber-400'
-              }`}
+                    ? 'bg-neutral-900 border-neutral-850 text-neutral-400'
+                    : 'bg-amber-950/40 border-amber-900 text-amber-400'
+                }`}
             >
               Order Status: {order.orderStatus}
             </span>
@@ -121,7 +120,7 @@ export default async function AdminOrderDetailPage({ params }: OrderDetailPagePr
             <div className="divide-y divide-neutral-900/60 space-y-4">
               {order.items.map((item) => {
                 const isCustom = !!item.customPoster;
-                const imageUrl = isCustom 
+                const imageUrl = isCustom
                   ? item.customPoster?.imageUrl || ''
                   : item.product?.images?.[0]?.url || 'https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&w=80&q=80';
 
@@ -129,8 +128,8 @@ export default async function AdminOrderDetailPage({ params }: OrderDetailPagePr
                 let artworkUrls: string[] = [];
                 if (isCustom && item.customPoster?.configuration) {
                   try {
-                    const config = typeof item.customPoster.configuration === 'string' 
-                      ? JSON.parse(item.customPoster.configuration) 
+                    const config = typeof item.customPoster.configuration === 'string'
+                      ? JSON.parse(item.customPoster.configuration)
                       : item.customPoster.configuration;
                     if (config && config.objects) {
                       artworkUrls = config.objects
@@ -152,11 +151,21 @@ export default async function AdminOrderDetailPage({ params }: OrderDetailPagePr
                         {isCustom ? 'Custom Poster Print' : item.title}
                       </h4>
                       <p className="text-[10px] text-neutral-400 mt-1 uppercase font-medium leading-relaxed">
-                        Size: {item.sizeName} {item.sizeDimensions ? `(${item.sizeDimensions})` : ''} <br />
-                        Frame: {item.frameName} <br />
-                        Paper: {item.paperType}
+                        Size: {item.sizeName} {item.sizeDimensions ? `(${item.sizeDimensions})` : ''}
+                        {item.frameName && (
+                          <>
+                            <br />
+                            Frame: {item.frameName}
+                          </>
+                        )}
+                        {item.paperType && (
+                          <>
+                            <br />
+                            Paper: {item.paperType}
+                          </>
+                        )}
                       </p>
-                      
+
                       {isCustom && (
                         <div className="mt-2 space-y-1.5">
                           <span className="inline-block text-[8px] bg-red-950/60 border border-red-900 text-[#FF4D4D] px-1.5 py-0.5 rounded font-black tracking-widest uppercase">
@@ -254,13 +263,12 @@ export default async function AdminOrderDetailPage({ params }: OrderDetailPagePr
                 <div>
                   <p className="text-[9px] text-neutral-500 uppercase font-bold">Gateway payment status</p>
                   <span
-                    className={`inline-block px-2.5 py-0.5 text-[9px] font-extrabold uppercase rounded-lg border mt-1.5 ${
-                      order.paymentStatus === 'CAPTURED'
+                    className={`inline-block px-2.5 py-0.5 text-[9px] font-extrabold uppercase rounded-lg border mt-1.5 ${order.paymentStatus === 'CAPTURED'
                         ? 'bg-emerald-950/40 border-emerald-900 text-emerald-400'
                         : order.paymentStatus === 'FAILED'
-                        ? 'bg-rose-950/40 border-rose-900 text-rose-400'
-                        : 'bg-amber-950/40 border-amber-900 text-amber-400'
-                    }`}
+                          ? 'bg-rose-950/40 border-rose-900 text-rose-400'
+                          : 'bg-amber-950/40 border-amber-900 text-amber-400'
+                      }`}
                   >
                     {order.paymentStatus}
                   </span>

@@ -155,9 +155,9 @@ model ProductVariant {
   product         Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
   sizeId          String
   size            ProductSize  @relation(fields: [sizeId], references: [id], onDelete: Restrict)
-  frameId         String
-  frame           ProductFrame @relation(fields: [frameId], references: [id], onDelete: Restrict)
-  paperType       String       // "Matte", "Glossy"
+  frameId         String?
+  frame           ProductFrame? @relation(fields: [frameId], references: [id], onDelete: SetNull)
+  paperType       String?       // Optional/Legacy: "Matte", "Glossy"
   additionalPrice Float        @default(0)
   stock           Int          @default(10)
   SKU             String       @unique
@@ -169,7 +169,7 @@ model ProductVariant {
 
 model ProductSize {
   id              String           @id @default(cuid())
-  name            String           // "A4", "A3", "A2", etc.
+  name            String           // "A3", "A4", "A5", "A6"
   dimensions      String           // "21 x 29.7 cm", etc.
   width           Float            // for dimensions/shipping (cm)
   height          Float            // for dimensions/shipping (cm)
@@ -287,8 +287,8 @@ model OrderItem {
   quantity       Int
   sizeName       String
   sizeDimensions String
-  frameName      String
-  paperType      String
+  frameName      String?
+  paperType      String?
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 }

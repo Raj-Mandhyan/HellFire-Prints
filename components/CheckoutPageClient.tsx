@@ -252,215 +252,213 @@ export default function CheckoutPageClient({
                 Shipping Address
               </h3>
 
-            {/* Saved Addresses List */}
-            {savedAddresses.length > 0 && (
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {savedAddresses.map((addr) => (
-                    <button
-                      key={addr.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedAddressId(addr.id);
-                        setShowNewAddressForm(false);
-                      }}
-                      className={`p-5 rounded-2xl border text-left cursor-pointer transition-all duration-300 flex flex-col justify-between h-40 shadow-sm active:scale-98 ${
-                        selectedAddressId === addr.id && !showNewAddressForm
-                          ? 'border-[#C1121F] bg-[#C1121F]/10 text-white shadow-lg shadow-red-950/20'
-                          : 'border-neutral-900 bg-neutral-950/45 text-neutral-400 hover:border-neutral-750'
-                      }`}
-                    >
-                      <div className="space-y-2.5 w-full">
-                        <div className="flex items-center justify-between w-full">
-                          <span className="font-extrabold text-xs uppercase text-white truncate max-w-[80%] tracking-wider">
-                            {addr.name}
-                          </span>
-                          {selectedAddressId === addr.id && !showNewAddressForm && (
-                            <span className="bg-[#C1121F] text-white p-0.5 rounded-full shadow">
-                              <Check className="w-3 h-3" />
+              {/* Saved Addresses List */}
+              {savedAddresses.length > 0 && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {savedAddresses.map((addr) => (
+                      <button
+                        key={addr.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedAddressId(addr.id);
+                          setShowNewAddressForm(false);
+                        }}
+                        className={`p-5 rounded-2xl border text-left cursor-pointer transition-all duration-300 flex flex-col justify-between h-40 shadow-sm active:scale-98 ${selectedAddressId === addr.id && !showNewAddressForm
+                            ? 'border-[#C1121F] bg-[#C1121F]/10 text-white shadow-lg shadow-red-950/20'
+                            : 'border-neutral-900 bg-neutral-950/45 text-neutral-400 hover:border-neutral-750'
+                          }`}
+                      >
+                        <div className="space-y-2.5 w-full">
+                          <div className="flex items-center justify-between w-full">
+                            <span className="font-extrabold text-xs uppercase text-white truncate max-w-[80%] tracking-wider">
+                              {addr.name}
                             </span>
-                          )}
+                            {selectedAddressId === addr.id && !showNewAddressForm && (
+                              <span className="bg-[#C1121F] text-white p-0.5 rounded-full shadow">
+                                <Check className="w-3 h-3" />
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[10px] font-semibold line-clamp-2 leading-relaxed text-neutral-400">{addr.street}</p>
+                          <p className="text-[10px] font-semibold text-neutral-500">{addr.city}, {addr.state} - {addr.postalCode}</p>
                         </div>
-                        <p className="text-[10px] font-semibold line-clamp-2 leading-relaxed text-neutral-400">{addr.street}</p>
-                        <p className="text-[10px] font-semibold text-neutral-500">{addr.city}, {addr.state} - {addr.postalCode}</p>
-                      </div>
-                      <div className="text-[9.5px] font-mono tracking-wider font-bold flex items-center gap-1.5 border-t border-neutral-900 pt-2 w-full text-neutral-500">
-                        <Phone className="w-3 h-3 text-[#C1121F]" />
-                        {addr.phone}
-                      </div>
+                        <div className="text-[9.5px] font-mono tracking-wider font-bold flex items-center gap-1.5 border-t border-neutral-900 pt-2 w-full text-neutral-500">
+                          <Phone className="w-3 h-3 text-[#C1121F]" />
+                          {addr.phone}
+                        </div>
+                      </button>
+                    ))}
+
+                    {/* Add New Address Option Card */}
+                    <button
+                      type="button"
+                      onClick={() => setShowNewAddressForm(true)}
+                      className={`p-5 rounded-2xl border text-center cursor-pointer transition-all duration-300 flex flex-col items-center justify-center h-40 gap-2.5 active:scale-98 shadow-sm ${showNewAddressForm
+                          ? 'border-[#C1121F] bg-[#C1121F]/10 text-white shadow-lg shadow-red-950/20'
+                          : 'border-dashed border-neutral-900 bg-transparent text-neutral-500 hover:border-neutral-750 hover:text-white'
+                        }`}
+                    >
+                      <Plus className="w-6 h-6 text-[#C1121F] animate-pulse" />
+                      <span className="text-[10px] font-black uppercase tracking-widest">
+                        Use a New Address
+                      </span>
                     </button>
-                  ))}
-
-                  {/* Add New Address Option Card */}
-                  <button
-                    type="button"
-                    onClick={() => setShowNewAddressForm(true)}
-                    className={`p-5 rounded-2xl border text-center cursor-pointer transition-all duration-300 flex flex-col items-center justify-center h-40 gap-2.5 active:scale-98 shadow-sm ${
-                      showNewAddressForm
-                        ? 'border-[#C1121F] bg-[#C1121F]/10 text-white shadow-lg shadow-red-950/20'
-                        : 'border-dashed border-neutral-900 bg-transparent text-neutral-500 hover:border-neutral-750 hover:text-white'
-                    }`}
-                  >
-                    <Plus className="w-6 h-6 text-[#C1121F] animate-pulse" />
-                    <span className="text-[10px] font-black uppercase tracking-widest">
-                      Use a New Address
-                    </span>
-                  </button>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* New Address Form Fields */}
-            {showNewAddressForm && (
-              <div className="space-y-4 pt-5 border-t border-neutral-900 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Full Name */}
-                <div className="space-y-1.5 sm:col-span-2">
-                  <label htmlFor="name" className="text-[10px] text-neutral-450 font-black uppercase tracking-widest block">
-                    Recipient Full Name
-                  </label>
-                  <div className="relative">
-                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
+              {/* New Address Form Fields */}
+              {showNewAddressForm && (
+                <div className="space-y-4 pt-5 border-t border-neutral-900 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Full Name */}
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <label htmlFor="name" className="text-[10px] text-neutral-450 font-black uppercase tracking-widest block">
+                      Recipient Full Name
+                    </label>
+                    <div className="relative">
+                      <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
+                      <input
+                        type="text"
+                        id="name"
+                        placeholder="John Doe"
+                        required
+                        value={newAddress.name}
+                        onChange={(e) => setNewAddress({ ...newAddress, name: e.target.value })}
+                        className="w-full bg-neutral-950 border border-neutral-900 rounded-xl py-3 pl-11 pr-4 text-xs font-semibold text-white placeholder-neutral-700 focus:outline-none focus:border-[#C1121F] transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Phone */}
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <label htmlFor="phone" className="text-[10px] text-neutral-455 font-black uppercase tracking-widest block">
+                      Phone Number
+                    </label>
+                    <div className="relative">
+                      <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
+                      <input
+                        type="tel"
+                        id="phone"
+                        placeholder="9876543210"
+                        required
+                        value={newAddress.phone}
+                        onChange={(e) => setNewAddress({ ...newAddress, phone: e.target.value })}
+                        className="w-full bg-neutral-950 border border-neutral-900 rounded-xl py-3 pl-11 pr-4 text-xs font-semibold text-white placeholder-neutral-700 focus:outline-none focus:border-[#C1121F] transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Street Address */}
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <label htmlFor="street" className="text-[10px] text-neutral-455 font-black uppercase tracking-widest block">
+                      Street Address (Line 1 & 2)
+                    </label>
+                    <div className="relative">
+                      <MapPin className="absolute left-4 top-4 w-4 h-4 text-neutral-500" />
+                      <textarea
+                        id="street"
+                        placeholder="Flat No, Apartment Name, Street Name, Area"
+                        required
+                        rows={2}
+                        value={newAddress.street}
+                        onChange={(e) => setNewAddress({ ...newAddress, street: e.target.value })}
+                        className="w-full bg-neutral-950 border border-neutral-900 rounded-xl py-3 pl-11 pr-4 text-xs font-semibold text-white placeholder-neutral-700 focus:outline-none focus:border-[#C1121F] transition-colors resize-none leading-relaxed"
+                      />
+                    </div>
+                  </div>
+
+                  {/* City */}
+                  <div className="space-y-1.5">
+                    <label htmlFor="city" className="text-[10px] text-neutral-455 font-black uppercase tracking-widest block">
+                      City
+                    </label>
+                    <div className="relative">
+                      <Map className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
+                      <input
+                        type="text"
+                        id="city"
+                        placeholder="Bengaluru"
+                        required
+                        value={newAddress.city}
+                        onChange={(e) => setNewAddress({ ...newAddress, city: e.target.value })}
+                        className="w-full bg-neutral-950 border border-neutral-900 rounded-xl py-3 pl-11 pr-4 text-xs font-semibold text-white placeholder-neutral-700 focus:outline-none focus:border-[#C1121F] transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  {/* State */}
+                  <div className="space-y-1.5">
+                    <label htmlFor="state" className="text-[10px] text-neutral-455 font-black uppercase tracking-widest block">
+                      State
+                    </label>
                     <input
                       type="text"
-                      id="name"
-                      placeholder="John Doe"
+                      id="state"
+                      placeholder="Karnataka"
                       required
-                      value={newAddress.name}
-                      onChange={(e) => setNewAddress({ ...newAddress, name: e.target.value })}
-                      className="w-full bg-neutral-950 border border-neutral-900 rounded-xl py-3 pl-11 pr-4 text-xs font-semibold text-white placeholder-neutral-700 focus:outline-none focus:border-[#C1121F] transition-colors"
+                      value={newAddress.state}
+                      onChange={(e) => setNewAddress({ ...newAddress, state: e.target.value })}
+                      className="w-full bg-neutral-950 border border-neutral-900 rounded-xl py-3 px-4 text-xs font-semibold text-white placeholder-neutral-700 focus:outline-none focus:border-[#C1121F] transition-colors"
                     />
                   </div>
-                </div>
 
-                {/* Phone */}
-                <div className="space-y-1.5 sm:col-span-2">
-                  <label htmlFor="phone" className="text-[10px] text-neutral-455 font-black uppercase tracking-widest block">
-                    Phone Number
-                  </label>
-                  <div className="relative">
-                    <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
-                    <input
-                      type="tel"
-                      id="phone"
-                      placeholder="9876543210"
-                      required
-                      value={newAddress.phone}
-                      onChange={(e) => setNewAddress({ ...newAddress, phone: e.target.value })}
-                      className="w-full bg-neutral-950 border border-neutral-900 rounded-xl py-3 pl-11 pr-4 text-xs font-semibold text-white placeholder-neutral-700 focus:outline-none focus:border-[#C1121F] transition-colors"
-                    />
-                  </div>
-                </div>
-
-                {/* Street Address */}
-                <div className="space-y-1.5 sm:col-span-2">
-                  <label htmlFor="street" className="text-[10px] text-neutral-455 font-black uppercase tracking-widest block">
-                    Street Address (Line 1 & 2)
-                  </label>
-                  <div className="relative">
-                    <MapPin className="absolute left-4 top-4 w-4 h-4 text-neutral-500" />
-                    <textarea
-                      id="street"
-                      placeholder="Flat No, Apartment Name, Street Name, Area"
-                      required
-                      rows={2}
-                      value={newAddress.street}
-                      onChange={(e) => setNewAddress({ ...newAddress, street: e.target.value })}
-                      className="w-full bg-neutral-950 border border-neutral-900 rounded-xl py-3 pl-11 pr-4 text-xs font-semibold text-white placeholder-neutral-700 focus:outline-none focus:border-[#C1121F] transition-colors resize-none leading-relaxed"
-                    />
-                  </div>
-                </div>
-
-                {/* City */}
-                <div className="space-y-1.5">
-                  <label htmlFor="city" className="text-[10px] text-neutral-455 font-black uppercase tracking-widest block">
-                    City
-                  </label>
-                  <div className="relative">
-                    <Map className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
+                  {/* Postal Code */}
+                  <div className="space-y-1.5">
+                    <label htmlFor="postalCode" className="text-[10px] text-neutral-455 font-black uppercase tracking-widest block">
+                      PIN / Postal Code
+                    </label>
                     <input
                       type="text"
-                      id="city"
-                      placeholder="Bengaluru"
+                      id="postalCode"
+                      placeholder="560001"
                       required
-                      value={newAddress.city}
-                      onChange={(e) => setNewAddress({ ...newAddress, city: e.target.value })}
-                      className="w-full bg-neutral-950 border border-neutral-900 rounded-xl py-3 pl-11 pr-4 text-xs font-semibold text-white placeholder-neutral-700 focus:outline-none focus:border-[#C1121F] transition-colors"
+                      value={newAddress.postalCode}
+                      onChange={(e) => setNewAddress({ ...newAddress, postalCode: e.target.value })}
+                      className="w-full bg-neutral-950 border border-neutral-900 rounded-xl py-3 px-4 text-xs font-semibold text-white placeholder-neutral-700 focus:outline-none focus:border-[#C1121F] transition-colors"
+                    />
+                  </div>
+
+                  {/* Country */}
+                  <div className="space-y-1.5">
+                    <label htmlFor="country" className="text-[10px] text-neutral-455 font-black uppercase tracking-widest block">
+                      Country
+                    </label>
+                    <input
+                      type="text"
+                      id="country"
+                      placeholder="India"
+                      required
+                      value={newAddress.country}
+                      onChange={(e) => setNewAddress({ ...newAddress, country: e.target.value })}
+                      className="w-full bg-neutral-950 border border-neutral-900 rounded-xl py-3 px-4 text-xs font-semibold text-white placeholder-neutral-700 focus:outline-none focus:border-[#C1121F] transition-colors"
                     />
                   </div>
                 </div>
+              )}
 
-                {/* State */}
-                <div className="space-y-1.5">
-                  <label htmlFor="state" className="text-[10px] text-neutral-455 font-black uppercase tracking-widest block">
-                    State
-                  </label>
-                  <input
-                    type="text"
-                    id="state"
-                    placeholder="Karnataka"
-                    required
-                    value={newAddress.state}
-                    onChange={(e) => setNewAddress({ ...newAddress, state: e.target.value })}
-                    className="w-full bg-neutral-950 border border-neutral-900 rounded-xl py-3 px-4 text-xs font-semibold text-white placeholder-neutral-700 focus:outline-none focus:border-[#C1121F] transition-colors"
-                  />
+              {/* Additional Order Note (Optional) */}
+              <div className="space-y-2.5 pt-6 border-t border-neutral-900 mt-6">
+                <label htmlFor="additionalNote" className="text-[10px] text-neutral-455 font-black uppercase tracking-widest block">
+                  Additional Note (Optional)
+                </label>
+                <textarea
+                  id="additionalNote"
+                  rows={3}
+                  maxLength={500}
+                  placeholder="Add any special instructions (e.g. Please call before delivery, leave with security desk)..."
+                  value={additionalNote}
+                  onChange={(e) => setAdditionalNote(e.target.value)}
+                  className="w-full bg-[#050505] border border-neutral-900 rounded-2xl py-3.5 px-4 text-xs font-semibold text-white placeholder-neutral-700 focus:outline-none focus:border-[#C1121F] transition-colors resize-none leading-relaxed"
+                />
+                <div className="flex justify-between items-center text-[9px] text-neutral-500 font-extrabold uppercase tracking-widest">
+                  <span>Sanitized instruction for package delivery.</span>
+                  <span className="font-mono">{additionalNote.length}/500</span>
                 </div>
-
-                {/* Postal Code */}
-                <div className="space-y-1.5">
-                  <label htmlFor="postalCode" className="text-[10px] text-neutral-455 font-black uppercase tracking-widest block">
-                    PIN / Postal Code
-                  </label>
-                  <input
-                    type="text"
-                    id="postalCode"
-                    placeholder="560001"
-                    required
-                    value={newAddress.postalCode}
-                    onChange={(e) => setNewAddress({ ...newAddress, postalCode: e.target.value })}
-                    className="w-full bg-neutral-950 border border-neutral-900 rounded-xl py-3 px-4 text-xs font-semibold text-white placeholder-neutral-700 focus:outline-none focus:border-[#C1121F] transition-colors"
-                  />
-                </div>
-
-                {/* Country */}
-                <div className="space-y-1.5">
-                  <label htmlFor="country" className="text-[10px] text-neutral-455 font-black uppercase tracking-widest block">
-                    Country
-                  </label>
-                  <input
-                    type="text"
-                    id="country"
-                    placeholder="India"
-                    required
-                    value={newAddress.country}
-                    onChange={(e) => setNewAddress({ ...newAddress, country: e.target.value })}
-                    className="w-full bg-neutral-950 border border-neutral-900 rounded-xl py-3 px-4 text-xs font-semibold text-white placeholder-neutral-700 focus:outline-none focus:border-[#C1121F] transition-colors"
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Additional Order Note (Optional) */}
-            <div className="space-y-2.5 pt-6 border-t border-neutral-900 mt-6">
-              <label htmlFor="additionalNote" className="text-[10px] text-neutral-455 font-black uppercase tracking-widest block">
-                Additional Note (Optional)
-              </label>
-              <textarea
-                id="additionalNote"
-                rows={3}
-                maxLength={500}
-                placeholder="Add any special instructions (e.g. Please call before delivery, leave with security desk)..."
-                value={additionalNote}
-                onChange={(e) => setAdditionalNote(e.target.value)}
-                className="w-full bg-[#050505] border border-neutral-900 rounded-2xl py-3.5 px-4 text-xs font-semibold text-white placeholder-neutral-700 focus:outline-none focus:border-[#C1121F] transition-colors resize-none leading-relaxed"
-              />
-              <div className="flex justify-between items-center text-[9px] text-neutral-500 font-extrabold uppercase tracking-widest">
-                <span>Sanitized instruction for package delivery.</span>
-                <span className="font-mono">{additionalNote.length}/500</span>
               </div>
             </div>
-          </div>
-        </ScrollReveal>
-      </div>
+          </ScrollReveal>
+        </div>
 
         {/* Right Side: Order Summary Review */}
         <div className="lg:col-span-4 space-y-6">
@@ -470,84 +468,83 @@ export default function CheckoutPageClient({
                 Order Items Summary
               </h3>
 
-            {/* Items Breakdown */}
-            <div className="space-y-4.5 max-h-[260px] overflow-y-auto pr-1">
-              {calculations.items.map((item) => (
-                <div key={item.id} className="flex gap-3 text-xs justify-between items-center pb-3 border-b border-neutral-900/60 last:border-b-0 last:pb-0">
-                  <div className="flex gap-3 items-center max-w-[70%]">
-                    <div className="relative w-10 h-12 rounded-lg bg-neutral-950 overflow-hidden border border-neutral-900 flex-shrink-0 shadow">
-                      <Image src={item.productImage} alt={item.productName} fill className="object-cover" />
+              {/* Items Breakdown */}
+              <div className="space-y-4.5 max-h-[260px] overflow-y-auto pr-1">
+                {calculations.items.map((item) => (
+                  <div key={item.id} className="flex gap-3 text-xs justify-between items-center pb-3 border-b border-neutral-900/60 last:border-b-0 last:pb-0">
+                    <div className="flex gap-3 items-center max-w-[70%]">
+                      <div className="relative w-10 h-12 rounded-lg bg-neutral-950 overflow-hidden border border-neutral-900 flex-shrink-0 shadow">
+                        <Image src={item.productImage} alt={item.productName} fill className="object-cover" />
+                      </div>
+                      <div>
+                        <span className="font-extrabold text-xs text-white uppercase truncate block tracking-wide">{item.productName}</span>
+                        <span className="text-[9px] text-neutral-500 uppercase tracking-widest font-bold block mt-0.5">
+                          {item.frameName && item.frameName !== 'No Frame' ? `${item.sizeName} (${item.frameName})` : item.sizeName} × {item.quantity}
+                        </span>
+                      </div>
                     </div>
-                    <div>
-                      <span className="font-extrabold text-xs text-white uppercase truncate block tracking-wide">{item.productName}</span>
-                      <span className="text-[9px] text-neutral-500 uppercase tracking-widest font-bold block mt-0.5">
-                        {item.sizeName} ({item.frameName}) × {item.quantity}
-                      </span>
-                    </div>
+                    <span className="font-black text-white font-mono shrink-0">₹{item.lineTotal.toFixed(0)}</span>
                   </div>
-                  <span className="font-black text-white font-mono shrink-0">₹{item.lineTotal.toFixed(0)}</span>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
 
-            {/* Calculations Breakdown */}
-            <div className="space-y-4 text-xs font-extrabold uppercase tracking-widest border-t border-neutral-900 pt-5">
-              <div className="flex justify-between">
-                <span className="text-neutral-500">Subtotal</span>
-                <span className="font-mono text-white">₹{calculations.subtotal.toFixed(2)}</span>
-              </div>
-              {calculations.discount && calculations.discount > 0 ? (
-                <div className="flex justify-between text-emerald-400">
-                  <span>Discount</span>
-                  <span className="font-mono font-black">-₹{calculations.discount.toFixed(2)}</span>
+              {/* Calculations Breakdown */}
+              <div className="space-y-4 text-xs font-extrabold uppercase tracking-widest border-t border-neutral-900 pt-5">
+                <div className="flex justify-between">
+                  <span className="text-neutral-500">Subtotal</span>
+                  <span className="font-mono text-white">₹{calculations.subtotal.toFixed(2)}</span>
                 </div>
-              ) : null}
-              <div className="flex justify-between items-center">
-                <span className="text-neutral-500">Delivery Charges</span>
-                <span className={`font-black uppercase tracking-widest text-[9px] px-2.5 py-1 rounded-lg ${
-                  calculations.shippingFee === 0 
-                    ? 'text-emerald-400 bg-emerald-950/40 border border-emerald-900/60' 
-                    : 'text-neutral-350 bg-neutral-950 border border-neutral-900'
-                }`}>
-                  {calculations.shippingFee === 0 ? '₹0' : `₹${calculations.shippingFee}`}
-                </span>
+                {calculations.discount && calculations.discount > 0 ? (
+                  <div className="flex justify-between text-emerald-400">
+                    <span>Discount</span>
+                    <span className="font-mono font-black">-₹{calculations.discount.toFixed(2)}</span>
+                  </div>
+                ) : null}
+                <div className="flex justify-between items-center">
+                  <span className="text-neutral-500">Delivery Charges</span>
+                  <span className={`font-black uppercase tracking-widest text-[9px] px-2.5 py-1 rounded-lg ${calculations.shippingFee === 0
+                      ? 'text-emerald-400 bg-emerald-950/40 border border-emerald-900/60'
+                      : 'text-neutral-350 bg-neutral-950 border border-neutral-900'
+                    }`}>
+                    {calculations.shippingFee === 0 ? '₹0' : `₹${calculations.shippingFee}`}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-neutral-500">Tax (Included)</span>
+                  <span className="font-mono text-neutral-550">₹0.00</span>
+                </div>
+                <div className="flex justify-between border-t border-neutral-900 pt-5 text-sm sm:text-base font-black text-white">
+                  <span>Grand Total</span>
+                  <span className="text-[#FF4D4D] font-mono">₹{calculations.total.toFixed(2)}</span>
+                </div>
               </div>
-              <div className="flex justify-between">
-                <span className="text-neutral-500">Tax (Included)</span>
-                <span className="font-mono text-neutral-550">₹0.00</span>
-              </div>
-              <div className="flex justify-between border-t border-neutral-900 pt-5 text-sm sm:text-base font-black text-white">
-                <span>Grand Total</span>
-                <span className="text-[#FF4D4D] font-mono">₹{calculations.total.toFixed(2)}</span>
-              </div>
-            </div>
 
-            {/* Submission Button */}
-            <button
-              type="submit"
-              disabled={isSubmitting || isVerifying}
-              className="w-full inline-flex items-center justify-center gap-2.5 bg-gradient-to-r from-[#C1121F] to-[#FF4D4D] border-transparent text-white font-black py-4 rounded-2xl text-xs uppercase tracking-widest transition-all duration-300 disabled:bg-neutral-950 disabled:border-neutral-900 disabled:text-neutral-600 disabled:cursor-not-allowed cursor-pointer active:scale-97 fiery-button-glow shadow-lg shadow-red-950/20"
-            >
-              {isVerifying ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-t-transparent border-white rounded-full animate-spin"></div>
-                  <span>VERIFYING PAYMENT...</span>
-                </>
-              ) : isSubmitting ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-t-transparent border-white rounded-full animate-spin"></div>
-                  <span>OPENING GATEWAY...</span>
-                </>
-              ) : (
-                <>
-                  <ShoppingBag className="w-4.5 h-4.5 text-white animate-pulse" />
-                  <span>PAY ₹{calculations.total.toFixed(0)}</span>
-                </>
-              )}
-            </button>
-          </div>
-        </ScrollReveal>
-      </div>
+              {/* Submission Button */}
+              <button
+                type="submit"
+                disabled={isSubmitting || isVerifying}
+                className="w-full inline-flex items-center justify-center gap-2.5 bg-gradient-to-r from-[#C1121F] to-[#FF4D4D] border-transparent text-white font-black py-4 rounded-2xl text-xs uppercase tracking-widest transition-all duration-300 disabled:bg-neutral-950 disabled:border-neutral-900 disabled:text-neutral-600 disabled:cursor-not-allowed cursor-pointer active:scale-97 fiery-button-glow shadow-lg shadow-red-950/20"
+              >
+                {isVerifying ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-t-transparent border-white rounded-full animate-spin"></div>
+                    <span>VERIFYING PAYMENT...</span>
+                  </>
+                ) : isSubmitting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-t-transparent border-white rounded-full animate-spin"></div>
+                    <span>OPENING GATEWAY...</span>
+                  </>
+                ) : (
+                  <>
+                    <ShoppingBag className="w-4.5 h-4.5 text-white animate-pulse" />
+                    <span>PAY ₹{calculations.total.toFixed(0)}</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </ScrollReveal>
+        </div>
       </form>
     </div>
   );

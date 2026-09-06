@@ -76,8 +76,8 @@ export async function GET() {
       let productSlug = item.product.slug;
       let productImage = item.product.images?.[0]?.url || '';
       let sizeName = item.variant?.size?.name || 'A4';
-      let frameName = item.variant?.frame?.name || 'No Frame';
-      let paperType = item.variant?.paperType || 'Matte';
+      let frameName = item.variant?.frame?.name || '';
+      let paperType = item.variant?.paperType || '';
       let stock = item.variant?.stock || 0;
       let SKU = item.variant?.SKU || item.product.SKU;
 

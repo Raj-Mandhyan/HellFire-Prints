@@ -4,7 +4,11 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
 import * as bcrypt from 'bcryptjs';
 
-const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:local_dev_password_123@localhost:5432/hellfire_db?schema=public';
+const rawConnectionString = process.env.DATABASE_URL || 'postgresql://postgres:local_dev_password_123@localhost:5432/hellfire_db?schema=public';
+const connectionString = rawConnectionString.replace(
+  /([?&]sslmode=)(?:require|prefer|verify-ca)(?=&|$)/g,
+  '$1verify-full'
+);
 const pool = new Pool({ connectionString });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
@@ -79,10 +83,10 @@ async function main() {
 
   console.log('--- Seeding Sizes (Idempotent) ---');
   const sizes = [
-    { name: 'A4', dimensions: '21 x 29.7 cm', width: 21.0, height: 29.7, additionalPrice: 0.0 },
     { name: 'A3', dimensions: '29.7 x 42 cm', width: 29.7, height: 42.0, additionalPrice: 199.0 },
-    { name: 'A2', dimensions: '42 x 59.4 cm', width: 42.0, height: 59.4, additionalPrice: 449.0 },
-    { name: 'A1', dimensions: '59.4 x 84.1 cm', width: 59.4, height: 84.1, additionalPrice: 899.0 },
+    { name: 'A4', dimensions: '21 x 29.7 cm', width: 21.0, height: 29.7, additionalPrice: 0.0 },
+    { name: 'A5', dimensions: '14.8 x 21 cm', width: 14.8, height: 21.0, additionalPrice: 0.0 },
+    { name: 'A6', dimensions: '10.5 x 14.8 cm', width: 10.5, height: 14.8, additionalPrice: 0.0 },
   ];
 
   const dbSizes: ProductSize[] = [];
@@ -567,32 +571,22 @@ async function main() {
         },
       });
 
-      // Create Variants (Sizes x Frames x PaperTypes)
-      // To limit database size, we generate standard size/frame variants
-      const paperTypes = ['Matte Premium (300 GSM)', 'Glossy Metallic (320 GSM)'];
+      // Create Variants (Sizes only: A3, A4, A5, A6)
       let variantCount = 0;
 
       for (const size of dbSizes) {
-        for (const frame of dbFrames) {
-          for (const paper of paperTypes) {
-            const additionalPrice = size.additionalPrice + frame.additionalPrice + (paper.includes('Glossy') ? 49.0 : 0.0);
-            
-            await prisma.productVariant.create({
-              data: {
-                productId: product.id,
-                sizeId: size.id,
-                frameId: frame.id,
-                paperType: paper,
-                additionalPrice,
-                stock: 25,
-                SKU: `${product.SKU}-${size.name}-${frame.name.substring(0, 3).toUpperCase()}-${paper.includes('Glossy') ? 'GLO' : 'MAT'}`.replace(/\s+/g, ''),
-              },
-            });
-            variantCount++;
-          }
-        }
+        await prisma.productVariant.create({
+          data: {
+            productId: product.id,
+            sizeId: size.id,
+            additionalPrice: size.additionalPrice,
+            stock: 25,
+            SKU: `${product.SKU}-${size.name}`.replace(/\s+/g, ''),
+          },
+        });
+        variantCount++;
       }
-      console.log(`Seeded Product variants: "${product.title}" with ${variantCount} size/frame/paper variants.`);
+      console.log(`Seeded Product variants: "${product.title}" with ${variantCount} size variants.`);
     } else {
       console.log(`Product already exists: "${product.title}". Refreshing images...`);
       // Clean up old images first to prevent duplicates

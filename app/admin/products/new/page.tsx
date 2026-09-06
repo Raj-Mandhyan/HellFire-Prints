@@ -37,7 +37,7 @@ export default async function AdminNewProductPage() {
             NEW <span className="text-[#C1121F]">PRODUCT</span>
           </h1>
           <p className="text-neutral-400 text-xs font-medium">
-            Draft poster configurations and auto-generate frame/size variants.
+            Draft poster configurations and auto-generate size variants.
           </p>
         </div>
       </div>

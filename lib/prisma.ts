@@ -13,7 +13,13 @@ if (!databaseUrl) {
   throw new Error('DATABASE_URL environment variable is missing.');
 }
 
-const pool = new Pool({ connectionString: databaseUrl });
+// Explicitly use sslmode=verify-full to enforce full certificate verification and prevent pg-connection-string deprecation warnings
+const connectionString = databaseUrl.replace(
+  /([?&]sslmode=)(?:require|prefer|verify-ca)(?=&|$)/g,
+  '$1verify-full'
+);
+
+const pool = new Pool({ connectionString });
 const adapter = new PrismaPg(pool);
 
 export const prisma = globalForPrisma.prisma ?? new PrismaClient({ adapter });

@@ -36,7 +36,7 @@ The editor is built using **Fabric.js** (loaded dynamically on the client side t
   * *Cinema Classic*
   * *Bold Quote*
   * *Futuristic Cyber*
-* **Dynamic Sizing & Aspect Ratios:** Dimensions resize dynamically when sizes (A4, A3, A2, 12x18", 18x24", 24x36") and orientations (Portrait, Landscape, Square) are updated.
+* **Dynamic Sizing & Aspect Ratios:** Dimensions resize dynamically when sizes (A3, A4, A5, A6) and orientations (Portrait, Landscape, Square) are updated.
 * **Undo & Redo Engine:** Manages a history state stack of canvas JSON configurations, enabling instant restoration.
 * **Object Management:** Reorder object layered sequence (front, back, forward, backward) or delete selected elements.
 
@@ -91,12 +91,10 @@ Pricing calculations are calculated server-side inside `lib/customPosterPricing.
 
 * **Base Price:** ₹499
 * **Sizing Additions:**
-  * A4: +₹0
   * A3: +₹199
-  * A2: +₹449
-  * 12 × 18 inch: +₹249
-  * 18 × 24 inch: +₹549
-  * 24 × 36 inch: +₹999
+  * A4: +₹0
+  * A5: +₹0
+  * A6: +₹0
 * **Paper Additions:**
   * Matte: +₹0
   * Glossy: +₹49
