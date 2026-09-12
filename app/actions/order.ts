@@ -6,6 +6,7 @@ import { Prisma } from '@prisma/client';
 import { createHmac, timingSafeEqual } from 'crypto';
 import Razorpay from 'razorpay';
 import { calculateCartTotal } from '@/lib/discounts';
+import { getVariantUnitPrice } from '@/lib/pricing';
 
 interface ShippingAddressInput {
   name: string;
@@ -186,7 +187,7 @@ export async function initiatePaymentAction(input: InitiatePaymentInput) {
           paperType: item.customPoster.paperType,
         };
       } else {
-        const unitPrice = item.product.price + (item.variant?.additionalPrice || 0);
+        const unitPrice = getVariantUnitPrice(item.variant, item.product.price);
         return {
           productId: item.productId,
           variantId: item.variantId,

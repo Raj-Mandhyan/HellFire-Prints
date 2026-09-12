@@ -158,6 +158,7 @@ model ProductVariant {
   frameId         String?
   frame           ProductFrame? @relation(fields: [frameId], references: [id], onDelete: SetNull)
   paperType       String?       // Optional/Legacy: "Matte", "Glossy"
+  price           Float?        // Specific size price for this product
   additionalPrice Float        @default(0)
   stock           Int          @default(10)
   SKU             String       @unique

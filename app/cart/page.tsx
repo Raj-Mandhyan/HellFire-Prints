@@ -229,7 +229,7 @@ export default function CartPage() {
                                   CUSTOM POSTER
                                 </span>
                                 <div className="text-[10px] text-neutral-500 uppercase tracking-widest font-semibold space-y-0.5">
-                                  <p>{item.sizeName} • {item.paperType} • {item.frameName}</p>
+                                  <p>Size: {item.sizeName}</p>
                                   <p className="text-neutral-600 font-bold">SKU: {item.SKU}</p>
                                 </div>
                                 <Link

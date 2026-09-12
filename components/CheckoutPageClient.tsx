@@ -474,7 +474,7 @@ export default function CheckoutPageClient({
                   <div key={item.id} className="flex gap-3 text-xs justify-between items-center pb-3 border-b border-neutral-900/60 last:border-b-0 last:pb-0">
                     <div className="flex gap-3 items-center max-w-[70%]">
                       <div className="relative w-10 h-12 rounded-lg bg-neutral-950 overflow-hidden border border-neutral-900 flex-shrink-0 shadow">
-                        <Image src={item.productImage} alt={item.productName} fill className="object-cover" />
+                        <Image src={item.productImage} alt={item.productName} fill sizes="40px" className="object-cover" />
                       </div>
                       <div>
                         <span className="font-extrabold text-xs text-white uppercase truncate block tracking-wide">{item.productName}</span>

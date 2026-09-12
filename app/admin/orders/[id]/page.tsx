@@ -144,7 +144,7 @@ export default async function AdminOrderDetailPage({ params }: OrderDetailPagePr
                 return (
                   <div key={item.id} className="flex items-start gap-4 pt-4 first:pt-0 group border-b border-neutral-900/40 pb-4 last:border-b-0">
                     <div className="relative w-12 h-16 rounded overflow-hidden bg-neutral-950 border border-neutral-900 flex-shrink-0">
-                      <Image src={imageUrl} alt={item.title} fill className="object-cover" />
+                      <Image src={imageUrl} alt={item.title} fill sizes="48px" className="object-cover" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <h4 className="font-extrabold text-white text-xs truncate">

@@ -58,12 +58,44 @@ export async function createProductAction(prevState: unknown, formData: FormData
     const featured = formData.get('featured') === 'true';
     const trending = formData.get('trending') === 'true';
 
+    // Size prices
+    const priceA6Raw = formData.get('price_A6') as string;
+    const priceA5Raw = formData.get('price_A5') as string;
+    const priceA4Raw = formData.get('price_A4') as string;
+    const priceA3Raw = formData.get('price_A3') as string;
+
     // Validation
-    if (!title || !description || !priceRaw || !SKU || !categoryId || !stockRaw) {
-      return { error: 'All primary fields (title, description, price, SKU, category, stock) are required.' };
+    if (!title || !description || !SKU || !categoryId || !stockRaw) {
+      return { error: 'All primary fields (title, description, SKU, category, stock) are required.' };
     }
 
-    const price = parseFloat(priceRaw);
+    if (!priceA6Raw || !priceA5Raw || !priceA4Raw || !priceA3Raw) {
+      return { error: 'Prices for all four sizes (A6, A5, A4, A3) are required.' };
+    }
+
+    const priceA6 = parseFloat(priceA6Raw);
+    const priceA5 = parseFloat(priceA5Raw);
+    const priceA4 = parseFloat(priceA4Raw);
+    const priceA3 = parseFloat(priceA3Raw);
+
+    if (
+      isNaN(priceA6) || priceA6 < 0 ||
+      isNaN(priceA5) || priceA5 < 0 ||
+      isNaN(priceA4) || priceA4 < 0 ||
+      isNaN(priceA3) || priceA3 < 0
+    ) {
+      return { error: 'All size prices must be valid non-negative numbers.' };
+    }
+
+    const sizePriceMap: Record<string, number> = {
+      A6: priceA6,
+      A5: priceA5,
+      A4: priceA4,
+      A3: priceA3,
+    };
+
+    // Base price defaults to A4 price if not explicitly provided
+    const price = priceRaw ? parseFloat(priceRaw) : priceA4;
     const MRP = MRPRaw ? parseFloat(MRPRaw) : price;
     const discount = discountRaw ? parseFloat(discountRaw) : 0;
     const stock = parseInt(stockRaw, 10);
@@ -139,6 +171,7 @@ export async function createProductAction(prevState: unknown, formData: FormData
     // Pre-calculate variant records solely per size in memory outside the transaction
     const variantRecords: Array<{
       sizeId: string;
+      price: number;
       additionalPrice: number;
       stock: number;
       SKU: string;
@@ -147,10 +180,12 @@ export async function createProductAction(prevState: unknown, formData: FormData
     }> = sizes.map((size) => {
       const cleanedSize = size.name.replace(/\s+/g, '');
       const variantSKU = `${SKU}-${cleanedSize}`.replace(/[^a-zA-Z0-9-]/g, '');
+      const variantPrice = sizePriceMap[size.name] ?? price;
 
       return {
         sizeId: size.id,
-        additionalPrice: size.additionalPrice,
+        price: variantPrice,
+        additionalPrice: 0,
         stock, // sync initial stock
         SKU: variantSKU,
         frameId: null,
@@ -223,6 +258,7 @@ export async function createProductAction(prevState: unknown, formData: FormData
  */
 export async function updateProductAction(prevState: unknown, formData: FormData) {
   const id = formData.get('id') as string;
+  let slug = '';
   try {
     await requireAdmin();
 
@@ -239,11 +275,42 @@ export async function updateProductAction(prevState: unknown, formData: FormData
     const featured = formData.get('featured') === 'true';
     const trending = formData.get('trending') === 'true';
 
-    if (!id || !title || !description || !priceRaw || !SKU || !categoryId || !stockRaw) {
+    // Size prices
+    const priceA6Raw = formData.get('price_A6') as string;
+    const priceA5Raw = formData.get('price_A5') as string;
+    const priceA4Raw = formData.get('price_A4') as string;
+    const priceA3Raw = formData.get('price_A3') as string;
+
+    if (!id || !title || !description || !SKU || !categoryId || !stockRaw) {
       return { error: 'All fields are required.' };
     }
 
-    const price = parseFloat(priceRaw);
+    if (!priceA6Raw || !priceA5Raw || !priceA4Raw || !priceA3Raw) {
+      return { error: 'Prices for all four sizes (A6, A5, A4, A3) are required.' };
+    }
+
+    const priceA6 = parseFloat(priceA6Raw);
+    const priceA5 = parseFloat(priceA5Raw);
+    const priceA4 = parseFloat(priceA4Raw);
+    const priceA3 = parseFloat(priceA3Raw);
+
+    if (
+      isNaN(priceA6) || priceA6 < 0 ||
+      isNaN(priceA5) || priceA5 < 0 ||
+      isNaN(priceA4) || priceA4 < 0 ||
+      isNaN(priceA3) || priceA3 < 0
+    ) {
+      return { error: 'All size prices must be valid non-negative numbers.' };
+    }
+
+    const sizePriceMap: Record<string, number> = {
+      A6: priceA6,
+      A5: priceA5,
+      A4: priceA4,
+      A3: priceA3,
+    };
+
+    const price = priceRaw ? parseFloat(priceRaw) : priceA4;
     const MRP = MRPRaw ? parseFloat(MRPRaw) : price;
     const discount = discountRaw ? parseFloat(discountRaw) : 0;
     const stock = parseInt(stockRaw, 10);
@@ -273,7 +340,7 @@ export async function updateProductAction(prevState: unknown, formData: FormData
       }
     }
 
-    const slug = await generateUniqueSlug(title, id);
+    slug = await generateUniqueSlug(title, id);
 
     // Verify category exists
     const category = await prisma.category.findUnique({
@@ -312,11 +379,43 @@ export async function updateProductAction(prevState: unknown, formData: FormData
         data: { quantity: stock },
       });
 
-      // 3. Sync stock to all its variants
-      await tx.productVariant.updateMany({
-        where: { productId: id },
-        data: { stock },
+      // 3. Sync stock and size-specific prices to variants for THIS product only
+      const VALID_SIZES = ['A3', 'A4', 'A5', 'A6'];
+      const dbSizes = await tx.productSize.findMany({
+        where: { name: { in: VALID_SIZES } },
       });
+
+      for (const size of dbSizes) {
+        const newSizePrice = sizePriceMap[size.name];
+        if (newSizePrice === undefined) continue;
+
+        const existingVariants = await tx.productVariant.findMany({
+          where: { productId: id, sizeId: size.id },
+        });
+
+        if (existingVariants.length > 0) {
+          await tx.productVariant.updateMany({
+            where: { productId: id, sizeId: size.id },
+            data: {
+              price: newSizePrice,
+              stock,
+            },
+          });
+        } else {
+          const cleanedSize = size.name.replace(/\s+/g, '');
+          const variantSKU = `${SKU}-${cleanedSize}`.replace(/[^a-zA-Z0-9-]/g, '');
+          await tx.productVariant.create({
+            data: {
+              productId: id,
+              sizeId: size.id,
+              price: newSizePrice,
+              additionalPrice: 0,
+              stock,
+              SKU: variantSKU,
+            },
+          });
+        }
+      }
 
       // 4. Update Images (replace them if new text provided)
       if (imagesRaw !== null && parsedImageUrls.length > 0) {
@@ -340,8 +439,10 @@ export async function updateProductAction(prevState: unknown, formData: FormData
   }
 
   revalidatePath('/');
+  revalidatePath(`/product/${slug}`);
   revalidatePath(`/product/${id}`);
   revalidatePath('/admin/products');
+  revalidatePath(`/admin/products/${id}/edit`);
   redirect('/admin/products');
 }
 

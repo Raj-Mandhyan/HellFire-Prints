@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { ShoppingBag, ArrowLeft } from 'lucide-react';
 import CheckoutPageClient from '@/components/CheckoutPageClient';
 import { calculateCartTotal } from '@/lib/discounts';
+import { getVariantUnitPrice } from '@/lib/pricing';
 
 export const dynamic = 'force-dynamic';
 
@@ -91,7 +92,7 @@ export default async function CheckoutPage() {
       frameName = item.customPoster.frameName;
       paperType = item.customPoster.paperType;
     } else {
-      unitPrice = item.product.price + (item.variant?.additionalPrice || 0);
+      unitPrice = getVariantUnitPrice(item.variant, item.product.price);
     }
 
     const lineTotal = unitPrice * item.quantity;

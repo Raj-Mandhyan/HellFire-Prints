@@ -83,7 +83,7 @@ async function main() {
 
   console.log('--- Seeding Sizes (Idempotent) ---');
   const sizes = [
-    { name: 'A3', dimensions: '29.7 x 42 cm', width: 29.7, height: 42.0, additionalPrice: 199.0 },
+    { name: 'A3', dimensions: '29.7 x 42 cm', width: 29.7, height: 42.0, additionalPrice: 0.0 },
     { name: 'A4', dimensions: '21 x 29.7 cm', width: 21.0, height: 29.7, additionalPrice: 0.0 },
     { name: 'A5', dimensions: '14.8 x 21 cm', width: 14.8, height: 21.0, additionalPrice: 0.0 },
     { name: 'A6', dimensions: '10.5 x 14.8 cm', width: 10.5, height: 14.8, additionalPrice: 0.0 },
@@ -285,9 +285,9 @@ async function main() {
       title: 'Custom Poster Print',
       slug: 'custom-poster',
       description: 'Create your own personalized design. Upload custom artwork and overlay text. Handcrafted to order.',
-      price: 499.0,
-      MRP: 999.0,
-      discount: 50.0,
+      price: 19.0,
+      MRP: 99.0,
+      discount: 0.0,
       SKU: 'HFP-CUST-POSTER',
       featured: false,
       trending: false,
@@ -574,12 +574,20 @@ async function main() {
       // Create Variants (Sizes only: A3, A4, A5, A6)
       let variantCount = 0;
 
+      const DEFAULT_SIZE_PRICES: Record<string, number> = {
+        A6: 19,
+        A5: 39,
+        A4: 59,
+        A3: 99,
+      };
+
       for (const size of dbSizes) {
         await prisma.productVariant.create({
           data: {
             productId: product.id,
             sizeId: size.id,
-            additionalPrice: size.additionalPrice,
+            price: DEFAULT_SIZE_PRICES[size.name] ?? 59,
+            additionalPrice: 0,
             stock: 25,
             SKU: `${product.SKU}-${size.name}`.replace(/\s+/g, ''),
           },

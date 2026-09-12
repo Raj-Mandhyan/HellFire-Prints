@@ -1,4 +1,5 @@
 import prisma from './prisma';
+import { getVariantUnitPrice } from './pricing';
 
 export interface DiscountBreakdown {
   subtotal: number;
@@ -55,7 +56,7 @@ export async function calculateCartTotal(cartId: string, couponCodeOverride?: st
     if (item.customPosterId && item.customPoster) {
       unitPrice = item.customPoster.price;
     } else if (item.product) {
-      unitPrice = item.product.price + (item.variant?.additionalPrice || 0);
+      unitPrice = getVariantUnitPrice(item.variant, item.product.price);
     }
     subtotal += unitPrice * item.quantity;
     totalQuantity += item.quantity;

@@ -4,6 +4,7 @@ import { randomUUID } from 'crypto';
 import { getCurrentUser } from '@/lib/auth';
 import { calculateCartTotal } from '@/lib/discounts';
 import { calculateCustomPosterPrice } from '@/lib/customPosterPricing';
+import { getVariantUnitPrice } from '@/lib/pricing';
 
 export const dynamic = 'force-dynamic';
 
@@ -92,7 +93,7 @@ export async function GET() {
         stock = 9999;
         SKU = `HFP-CUST-${sizeName}-${paperType.substring(0, 3).toUpperCase()}`.replace(/\s+/g, '');
       } else {
-        unitPrice = item.product.price + (item.variant?.additionalPrice || 0);
+        unitPrice = getVariantUnitPrice(item.variant, item.product.price);
       }
 
       const lineTotal = unitPrice * item.quantity;
@@ -152,9 +153,29 @@ export async function POST(req: NextRequest) {
     let customPosterId: string | null = null;
 
     if (customPoster) {
-      const baseProduct = await prisma.product.findUnique({
+      let baseProduct = await prisma.product.findUnique({
         where: { slug: 'custom-poster' },
       });
+      if (!baseProduct) {
+        const customCat = (await prisma.category.findFirst({ where: { slug: 'custom' } })) || (await prisma.category.findFirst());
+        if (customCat) {
+          baseProduct = await prisma.product.create({
+            data: {
+              title: 'Custom Poster Print',
+              slug: 'custom-poster',
+              description: 'Create your own personalized design. Upload custom artwork and overlay text. Handcrafted to order.',
+              price: 19.0,
+              MRP: 99.0,
+              discount: 0.0,
+              SKU: 'HFP-CUST-POSTER',
+              featured: false,
+              trending: false,
+              active: true,
+              categoryId: customCat.id,
+            },
+          });
+        }
+      }
       if (!baseProduct) {
         return NextResponse.json({ error: 'Custom poster base product not found.' }, { status: 500 });
       }

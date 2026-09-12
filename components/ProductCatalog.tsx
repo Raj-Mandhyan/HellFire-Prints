@@ -125,6 +125,7 @@ export function ProductCard({ product }: ProductCardProps) {
               sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
               className="object-cover group-hover:scale-108 transition-transform duration-700"
               priority={idx === 0}
+              loading={idx === 0 ? 'eager' : undefined}
             />
           </div>
         ))}
@@ -153,7 +154,6 @@ export function ProductCard({ product }: ProductCardProps) {
           <>
             <button
               type="button"
-              suppressHydrationWarning
               onClick={(e) => {
                 e.stopPropagation();
                 e.preventDefault();
@@ -166,7 +166,6 @@ export function ProductCard({ product }: ProductCardProps) {
             </button>
             <button
               type="button"
-              suppressHydrationWarning
               onClick={(e) => {
                 e.stopPropagation();
                 e.preventDefault();
@@ -187,7 +186,6 @@ export function ProductCard({ product }: ProductCardProps) {
               <button
                 key={idx}
                 type="button"
-                suppressHydrationWarning
                 onClick={(e) => {
                   e.stopPropagation();
                   e.preventDefault();
@@ -354,7 +352,6 @@ export default function ProductCatalog({ products }: ProductCatalogProps) {
             <button
               key={category}
               type="button"
-              suppressHydrationWarning
               onClick={() => setSelectedCategory(category)}
               className={`px-4.5 py-2 text-[10px] font-black uppercase tracking-widest rounded-full border transition-all duration-350 cursor-pointer flex-shrink-0 active:scale-95 ${
                 selectedCategory === category
@@ -382,7 +379,6 @@ export default function ProductCatalog({ products }: ProductCatalogProps) {
           <p className="text-neutral-500 text-xs font-bold uppercase tracking-widest">No posters match your query.</p>
           <button
             type="button"
-            suppressHydrationWarning
             onClick={() => {
               setSelectedCategory('All');
               setSearchQuery('');

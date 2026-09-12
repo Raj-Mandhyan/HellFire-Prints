@@ -18,150 +18,13 @@ import {
 import Image from 'next/image';
 import ScrollReveal from '@/components/ScrollReveal';
 import { 
-  POSTER_SIZES, PAPER_TYPES, FRAME_FINISHES, 
+  POSTER_SIZES, 
   calculateCustomPosterPrice 
 } from '@/lib/customPosterPricing';
+import PosterSizeReference from '@/components/PosterSizeReference';
 
 // Custom fonts loaded dynamically
 const AVAILABLE_FONTS = ['Outfit', 'Cinzel', 'Anton', 'Montserrat', 'Special Elite'];
-
-const STARTER_TEMPLATES = [
-  {
-    id: 'blank',
-    name: 'Blank Slate',
-    description: 'Start from scratch',
-    backgroundColor: '#080808',
-    objects: []
-  },
-  {
-    id: 'minimal',
-    name: 'Minimalist Art',
-    description: 'Elegant serif layout',
-    backgroundColor: '#ffffff',
-    objects: [
-      {
-        type: 'IText',
-        text: 'THE BALANCE',
-        left: 80,
-        top: 380,
-        fontFamily: 'Cinzel',
-        fontSize: 32,
-        fill: '#111111',
-        fontWeight: 'bold',
-        charSpacing: 100,
-        textAlign: 'center'
-      },
-      {
-        type: 'IText',
-        text: 'Exploring form, light, and negative space',
-        left: 80,
-        top: 430,
-        fontFamily: 'Outfit',
-        fontSize: 10,
-        fill: '#777777',
-        charSpacing: 20
-      }
-    ]
-  },
-  {
-    id: 'movie',
-    name: 'Cinema Classic',
-    description: 'Classic movie credit details',
-    backgroundColor: '#0a0a0a',
-    objects: [
-      {
-        type: 'IText',
-        text: 'A HELLFIRE FILMS PRESENTATION',
-        left: 60,
-        top: 50,
-        fontFamily: 'Outfit',
-        fontSize: 8,
-        fill: '#C1121F',
-        fontWeight: 'bold',
-        charSpacing: 150
-      },
-      {
-        type: 'IText',
-        text: 'DARK SILENCE',
-        left: 60,
-        top: 80,
-        fontFamily: 'Anton',
-        fontSize: 40,
-        fill: '#ffffff',
-        charSpacing: 50
-      },
-      {
-        type: 'IText',
-        text: 'DIRECTED BY THE HACKATHON TEAM  •  STARRING AGENT ANTIGRAVITY\nPRODUCED IN ASSOCIATION WITH GOOGLE DEEPMIND  •  ALL RIGHTS RESERVED',
-        left: 50,
-        top: 440,
-        fontFamily: 'Outfit',
-        fontSize: 7,
-        fill: '#888888',
-        textAlign: 'center',
-        charSpacing: 40
-      }
-    ]
-  },
-  {
-    id: 'motivational',
-    name: 'Bold Quote',
-    description: 'High contrast text focus',
-    backgroundColor: '#C1121F',
-    objects: [
-      {
-        type: 'IText',
-        text: 'DEVIATE',
-        left: 50,
-        top: 180,
-        fontFamily: 'Anton',
-        fontSize: 54,
-        fill: '#ffffff',
-        textAlign: 'center'
-      },
-      {
-        type: 'IText',
-        text: 'THE COMFORT ZONE IS THE GRAVEYARD OF PROGRESS.',
-        left: 60,
-        top: 260,
-        fontFamily: 'Montserrat',
-        fontSize: 11,
-        fill: '#000000',
-        fontWeight: 'bold',
-        textAlign: 'center',
-        charSpacing: 50
-      }
-    ]
-  },
-  {
-    id: 'cyberpunk',
-    name: 'Futuristic Cyber',
-    description: 'Glowing dark aesthetic',
-    backgroundColor: '#080508',
-    objects: [
-      {
-        type: 'IText',
-        text: 'SYSTEM_ERROR_404',
-        left: 50,
-        top: 80,
-        fontFamily: 'Special Elite',
-        fontSize: 24,
-        fill: '#00ffff',
-        fontWeight: 'bold'
-      },
-      {
-        type: 'IText',
-        text: 'HELLFIRE OPERATING SYSTEM // RETRO_FUTURE_ONLINE',
-        left: 50,
-        top: 420,
-        fontFamily: 'Outfit',
-        fontSize: 9,
-        fill: '#ff00ff',
-        charSpacing: 80
-      }
-    ]
-  }
-];
 
 function ConfiguratorContent() {
   const { addToCart, refreshCart } = useCart();
@@ -172,7 +35,7 @@ function ConfiguratorContent() {
   const [sizeName, setSizeName] = useState<string>('A4');
   const [paperType, setPaperType] = useState<string>('Matte');
   const [frameName, setFrameName] = useState<string>('No Frame');
-  const [orientation, setOrientation] = useState<'PORTRAIT' | 'LANDSCAPE' | 'SQUARE'>('PORTRAIT');
+  const [orientation, setOrientation] = useState<'PORTRAIT' | 'LANDSCAPE'>('PORTRAIT');
   const [quantity, setQuantity] = useState<number>(1);
 
   // Edit / Cart reference states
@@ -231,7 +94,7 @@ function ConfiguratorContent() {
   const [textInput, setTextInput] = useState('');
 
   // Tab configurations
-  const [activeTab, setActiveTab] = useState<'templates' | 'upload' | 'text' | 'styling' | 'saved'>('templates');
+  const [activeTab, setActiveTab] = useState<'canvas' | 'upload' | 'text' | 'saved'>('upload');
 
   // Load Fabric client-side
   useEffect(() => {
@@ -335,11 +198,9 @@ function ConfiguratorContent() {
 
     if (orientation === 'PORTRAIT') {
       canvasHeight = Math.round(canvasWidth / aspectRatio);
-    } else if (orientation === 'LANDSCAPE') {
-      canvasHeight = Math.round(canvasWidth * aspectRatio);
     } else {
-      // SQUARE
-      canvasHeight = canvasWidth;
+      // LANDSCAPE
+      canvasHeight = Math.round(canvasWidth * aspectRatio);
     }
 
     fabricCanvas.setDimensions({ width: canvasWidth, height: canvasHeight });
@@ -425,12 +286,12 @@ function ConfiguratorContent() {
 
   // Pricing calculations
   const priceBreakdown = useMemo(() => {
-    const unitPrice = calculateCustomPosterPrice({ sizeName, paperType, frameName });
+    const unitPrice = calculateCustomPosterPrice({ sizeName });
     return {
       unitPrice,
       total: unitPrice * quantity
     };
-  }, [sizeName, paperType, frameName, quantity]);
+  }, [sizeName, quantity]);
 
   const handleRotateActive = (angleDelta: number) => {
     if (!activeObject || !fabricCanvas) return;
@@ -485,7 +346,7 @@ function ConfiguratorContent() {
     updateActiveText('fontStyle', current === 'italic' ? 'normal' : 'italic');
   };
 
-  // Upload artwork image
+  // Upload custom image
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !fabricCanvas) return;
@@ -543,7 +404,7 @@ function ConfiguratorContent() {
             fabricCanvas.fire('object:modified', { target: addedImg });
           }, { crossOrigin: 'anonymous' });
         }
-        setSuccessMsg("Artwork uploaded and stabilized successfully.");
+        setSuccessMsg("Custom image uploaded and stabilized successfully.");
       } else {
         setErrorMsg(data.error || "Failed to upload image permanently.");
       }
@@ -553,64 +414,6 @@ function ConfiguratorContent() {
     } finally {
       setIsUploading(false);
     }
-  };
-
-  // Starters / Templates loader
-  const handleLoadTemplate = (template: typeof STARTER_TEMPLATES[0]) => {
-    if (!fabricCanvas) return;
-
-    if (fabricCanvas.getObjects().length > 0) {
-      if (!window.confirm("Loading this template will clear your current customizations. Proceed?")) {
-        return;
-      }
-    }
-
-    isStateChanging.current = true;
-    fabricCanvas.clear();
-    
-    // Set background color
-    fabricCanvas.setBackgroundColor(template.backgroundColor, () => {
-      // Re-apply clipping box
-      const clipRect = new fabricModule.fabric.Rect({
-        left: 0,
-        top: 0,
-        width: fabricCanvas.getWidth(),
-        height: fabricCanvas.getHeight(),
-        absolutePositioned: true
-      });
-      fabricCanvas.clipPath = clipRect;
-
-      const addPromises = template.objects.map((objData: any) => {
-        return new Promise<void>((resolve) => {
-          const text = new fabricModule.fabric.IText(objData.text, {
-            left: objData.left,
-            top: objData.top,
-            fontFamily: objData.fontFamily,
-            fontSize: objData.fontSize,
-            fill: objData.fill,
-            fontWeight: objData.fontWeight,
-            charSpacing: objData.charSpacing || 0,
-            textAlign: objData.textAlign || 'left',
-          });
-          setCustomControls(text);
-          fabricCanvas.add(text);
-          resolve();
-        });
-      });
-
-      Promise.all(addPromises).then(() => {
-        fabricCanvas.renderAll();
-        isStateChanging.current = false;
-        
-        // Force history update
-        const state = JSON.stringify(fabricCanvas.toJSON());
-        history.current = [state];
-        historyIndex.current = 0;
-        setCanUndo(false);
-        setCanRedo(false);
-        setHasUnsavedChanges(true);
-      });
-    });
   };
 
   // Undo / Redo engine
@@ -855,14 +658,6 @@ function ConfiguratorContent() {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [hasUnsavedChanges]);
 
-  // Frame finish border styles class
-  const frameBorderClass = useMemo(() => {
-    if (frameName === 'Black') return 'border-[16px] border-neutral-900 shadow-2xl';
-    if (frameName === 'White') return 'border-[16px] border-neutral-100 shadow-2xl';
-    if (frameName === 'Wooden') return 'border-[16px] border-amber-800/80 shadow-2xl';
-    return 'border-0 border-transparent';
-  }, [frameName]);
-
   return (
     <div className="min-h-screen bg-transparent text-[#F5F5F5] flex flex-col font-sans selection:bg-[#C1121F] selection:text-white">
       <style>{`
@@ -877,27 +672,27 @@ function ConfiguratorContent() {
         <ScrollReveal fiery={false} className="w-full lg:w-96 shrink-0 flex flex-col">
           <div className="w-full h-full flex flex-col bg-[#0F0F0F] border border-neutral-900 rounded-3xl overflow-hidden shadow-xl shadow-black/40">
           {/* Tab Selection */}
-          <div className="grid grid-cols-5 border-b border-neutral-900 text-center bg-neutral-950/80">
+          <div className="grid grid-cols-4 border-b border-neutral-900 text-center bg-neutral-950/80">
             {[
-              { id: 'templates', icon: Grid, label: 'Starters' },
-              { id: 'upload', icon: Upload, label: 'Artwork' },
-              { id: 'text', icon: Type, label: 'Text' },
-              { id: 'styling', icon: Settings, label: 'Finishes' },
-              { id: 'saved', icon: Save, label: 'My Designs' }
+              { id: 'canvas', icon: Crop, label: 'Canvas & Size', shortLabel: 'Canvas & Size' },
+              { id: 'upload', icon: Upload, label: 'Upload your custom image', shortLabel: 'Upload Image' },
+              { id: 'text', icon: Type, label: 'Text', shortLabel: 'Text' },
+              { id: 'saved', icon: Save, label: 'My Designs', shortLabel: 'My Designs' }
             ].map((tab) => {
               const Icon = tab.icon;
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
-                  className={`py-4.5 flex flex-col items-center gap-1.5 text-[9px] font-black uppercase tracking-widest transition-all border-b-2 cursor-pointer active:scale-95 ${
+                  title={tab.label}
+                  className={`py-4 flex flex-col items-center justify-center gap-1.5 text-[9px] font-black uppercase tracking-wider transition-all border-b-2 cursor-pointer active:scale-95 text-center ${
                     activeTab === tab.id 
                       ? 'border-[#C1121F] text-white bg-[#C1121F]/10' 
                       : 'border-transparent text-neutral-500 hover:text-neutral-350 hover:bg-neutral-900/10'
                   }`}
                 >
-                  <Icon className="w-4 h-4" />
-                  <span>{tab.label}</span>
+                  <Icon className="w-4 h-4 shrink-0" />
+                  <span className="truncate max-w-full px-1">{tab.shortLabel || tab.label}</span>
                 </button>
               );
             })}
@@ -905,27 +700,60 @@ function ConfiguratorContent() {
 
           {/* Tab content panel */}
           <div className="flex-1 p-6 space-y-6 overflow-y-auto max-h-[450px] lg:max-h-[500px]">
-            {/* 1. Templates Tab */}
-            {activeTab === 'templates' && (
-              <div className="space-y-4">
-                <div className="space-y-1">
-                  <h4 className="text-xs text-neutral-350 font-black uppercase tracking-widest">Select Starter Template</h4>
-                  <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider">Click to populate the canvas. You can edit all elements.</p>
+            {/* 1. Canvas & Size Tab */}
+            {activeTab === 'canvas' && (
+              <div className="space-y-6">
+                {/* Orientation configuration */}
+                <div className="space-y-3">
+                  <h4 className="text-xs text-neutral-350 font-black uppercase tracking-widest border-b border-neutral-900 pb-2 flex items-center gap-1.5">
+                    <Crop className="w-3.5 h-3.5 text-[#C1121F]" />
+                    Canvas Orientation
+                  </h4>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    {(['PORTRAIT', 'LANDSCAPE'] as const).map((orient) => (
+                      <button
+                        key={orient}
+                        onClick={() => setOrientation(orient)}
+                        className={`py-3 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all duration-300 cursor-pointer active:scale-95 ${
+                          orientation === orient 
+                            ? 'border-[#C1121F] bg-[#C1121F]/10 text-white shadow shadow-red-950/15' 
+                            : 'border-neutral-900 bg-neutral-950/45 text-neutral-450 hover:border-neutral-750 hover:text-white'
+                        }`}
+                      >
+                        {orient === 'PORTRAIT' ? 'Portrait' : 'Landscape'}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <div className="grid grid-cols-1 gap-3">
-                  {STARTER_TEMPLATES.map((tmpl) => (
-                    <button
-                      key={tmpl.id}
-                      onClick={() => handleLoadTemplate(tmpl)}
-                      className="p-4 bg-neutral-950 hover:bg-neutral-900 border border-neutral-900 hover:border-[#C1121F]/60 text-left rounded-2xl transition-all flex items-center justify-between group cursor-pointer"
-                    >
-                      <div>
-                        <div className="text-xs font-black text-white uppercase tracking-wider group-hover:text-[#FF4D4D] transition-colors">{tmpl.name}</div>
-                        <div className="text-[9px] text-neutral-500 font-semibold mt-1">{tmpl.description}</div>
-                      </div>
-                      <Sparkles className="w-4 h-4 text-neutral-700 group-hover:text-[#C1121F] transition-colors" />
-                    </button>
-                  ))}
+
+                {/* Sizing selection */}
+                <div className="space-y-3">
+                  <h4 className="text-xs text-neutral-350 font-black uppercase tracking-widest border-b border-neutral-900 pb-2 flex items-center gap-1.5">
+                    <Settings className="w-3.5 h-3.5 text-[#C1121F]" />
+                    Poster Dimensions
+                  </h4>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    {POSTER_SIZES.map((size) => (
+                      <button
+                        key={size.name}
+                        onClick={() => setSizeName(size.name)}
+                        className={`p-3 rounded-xl border text-left cursor-pointer transition-all duration-300 active:scale-98 ${
+                          sizeName === size.name 
+                            ? 'border-[#C1121F] bg-[#C1121F]/10 text-white shadow shadow-red-950/15' 
+                            : 'border-neutral-900 bg-neutral-950/45 text-neutral-450 hover:border-neutral-750'
+                        }`}
+                      >
+                        <div className="text-[10px] font-black uppercase tracking-wider flex justify-between items-center">
+                          <span>{size.name}</span>
+                          <span className="text-[#FF4D4D] text-[10px] font-black">₹{size.price}</span>
+                        </div>
+                        <div className="text-[8px] text-neutral-500 font-mono mt-1 font-bold">{size.dimensions}</div>
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Poster Physical Size Reference */}
+                  <PosterSizeReference compact className="pt-2" />
                 </div>
               </div>
             )}
@@ -934,8 +762,8 @@ function ConfiguratorContent() {
             {activeTab === 'upload' && (
               <div className="space-y-5">
                 <div className="space-y-1">
-                  <h4 className="text-xs text-neutral-350 font-black uppercase tracking-widest">Upload Custom Artwork</h4>
-                  <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider">Drag/drop or select images. PNG, JPG, or WEBP (Max 15MB).</p>
+                  <h4 className="text-xs text-neutral-350 font-black uppercase tracking-widest">Upload your custom image</h4>
+                  <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider">Drag/drop or select your custom image. PNG, JPG, or WEBP (Max 15MB).</p>
                 </div>
 
                 {/* Upload box */}
@@ -954,7 +782,7 @@ function ConfiguratorContent() {
                       <Upload className="w-8 h-8 text-neutral-650 group-hover:text-white mx-auto transition-colors" />
                     )}
                     <p className="text-[10px] font-black uppercase tracking-widest text-neutral-450">
-                      {isUploading ? 'Uploading and cropping...' : 'Select image file'}
+                      {isUploading ? 'Uploading and cropping...' : 'Select custom image file'}
                     </p>
                     <p className="text-[9px] text-neutral-600 font-mono font-bold">PNG, JPG, WEBP (Max 15MB)</p>
                   </div>
@@ -963,7 +791,7 @@ function ConfiguratorContent() {
                 <div className="p-4 bg-neutral-950 border border-neutral-900 rounded-xl flex gap-3">
                   <Info className="w-4.5 h-4.5 text-[#C1121F] shrink-0" />
                   <p className="text-[9px] text-neutral-550 leading-relaxed font-semibold">
-                    Uploaded artwork remains constrained inside the boundary card. Use canvas selection handles to resize, crop-position, or rotate it.
+                    Uploaded image remains constrained inside the boundary card. Use canvas selection handles to resize, crop-position, or rotate it.
                   </p>
                 </div>
 
@@ -972,7 +800,7 @@ function ConfiguratorContent() {
                   <div className="p-4 bg-neutral-950 border border-neutral-900 rounded-2xl space-y-4 shadow-inner">
                     <h5 className="text-[9px] text-[#FF4D4D] font-black uppercase tracking-widest border-b border-neutral-900 pb-2 flex items-center gap-1.5">
                       <Settings className="w-3 h-3 text-[#C1121F]" />
-                      Artwork Customization
+                      Custom Image Settings
                     </h5>
 
                     {/* Rotation control */}
@@ -1017,7 +845,7 @@ function ConfiguratorContent() {
                     {/* Non-destructive Crop sliders */}
                     <div className="space-y-3 pt-2 border-t border-neutral-900">
                       <div className="flex items-center justify-between">
-                        <label className="text-[9px] text-neutral-500 font-black uppercase tracking-wider block">Crop Artwork</label>
+                        <label className="text-[9px] text-neutral-500 font-black uppercase tracking-wider block">Crop Image</label>
                         <button
                           onClick={() => {
                             activeObject.set({
@@ -1395,118 +1223,7 @@ function ConfiguratorContent() {
               </div>
             )}
 
-            {/* 4. Styling (Finishes, Materials, Size) Tab */}
-            {activeTab === 'styling' && (
-              <div className="space-y-6">
-                {/* Orientation configuration */}
-                <div className="space-y-3">
-                  <h4 className="text-xs text-neutral-350 font-black uppercase tracking-widest border-b border-neutral-900 pb-2 flex items-center gap-1.5">
-                    <Crop className="w-3.5 h-3.5 text-[#C1121F]" />
-                    Canvas Orientation
-                  </h4>
-                  <div className="grid grid-cols-3 gap-2">
-                    {(['PORTRAIT', 'LANDSCAPE', 'SQUARE'] as const).map((orient) => (
-                      <button
-                        key={orient}
-                        onClick={() => setOrientation(orient)}
-                        className={`py-2.5 rounded-xl border text-[9px] font-black uppercase tracking-widest transition-all duration-300 cursor-pointer active:scale-95 ${
-                          orientation === orient 
-                            ? 'border-[#C1121F] bg-[#C1121F]/10 text-white shadow shadow-red-950/15' 
-                            : 'border-neutral-900 bg-neutral-950/45 text-neutral-450 hover:border-neutral-750 hover:text-white'
-                        }`}
-                      >
-                        {orient}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Sizing selection */}
-                <div className="space-y-3">
-                  <h4 className="text-xs text-neutral-350 font-black uppercase tracking-widest border-b border-neutral-900 pb-2 flex items-center gap-1.5">
-                    <Settings className="w-3.5 h-3.5 text-[#C1121F]" />
-                    Poster Dimensions
-                  </h4>
-                  <div className="grid grid-cols-2 gap-2.5">
-                    {POSTER_SIZES.map((size) => (
-                      <button
-                        key={size.name}
-                        onClick={() => setSizeName(size.name)}
-                        className={`p-3 rounded-xl border text-left cursor-pointer transition-all duration-300 active:scale-98 ${
-                          sizeName === size.name 
-                            ? 'border-[#C1121F] bg-[#C1121F]/10 text-white shadow shadow-red-950/15' 
-                            : 'border-neutral-900 bg-neutral-950/45 text-neutral-450 hover:border-neutral-750'
-                        }`}
-                      >
-                        <div className="text-[10px] font-black uppercase tracking-wider flex justify-between">
-                          <span>{size.name}</span>
-                          <span className="text-[#FF4D4D] text-[9px] font-bold">{size.additionalPrice > 0 ? `+ ₹${size.additionalPrice}` : 'Incl.'}</span>
-                        </div>
-                        <div className="text-[8px] text-neutral-500 font-mono mt-1 font-bold">{size.dimensions}</div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Paper configuration selection */}
-                <div className="space-y-3">
-                  <h4 className="text-xs text-neutral-350 font-black uppercase tracking-widest border-b border-neutral-900 pb-2 flex items-center gap-1.5">
-                    <Info className="w-3.5 h-3.5 text-[#C1121F]" />
-                    Paper Grade
-                  </h4>
-                  <div className="grid grid-cols-1 gap-2.5">
-                    {PAPER_TYPES.map((paper) => (
-                      <button
-                        key={paper.name}
-                        onClick={() => setPaperType(paper.name)}
-                        className={`p-3 rounded-xl border text-left cursor-pointer transition-all duration-300 flex items-center justify-between active:scale-98 ${
-                          paperType === paper.name 
-                            ? 'border-[#C1121F] bg-[#C1121F]/10 text-white shadow shadow-red-950/15' 
-                            : 'border-neutral-900 bg-neutral-950/45 text-neutral-450 hover:border-neutral-750'
-                        }`}
-                      >
-                        <div>
-                          <div className="text-[10px] font-black uppercase tracking-wider">{paper.name}</div>
-                          <div className="text-[9px] text-neutral-500 mt-1 font-semibold">{paper.description}</div>
-                        </div>
-                        <span className="text-[#FF4D4D] text-[9.5px] font-black shrink-0 ml-2">
-                          {paper.additionalPrice > 0 ? `+ ₹${paper.additionalPrice}` : 'Included'}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Framing options */}
-                <div className="space-y-3">
-                  <h4 className="text-xs text-neutral-350 font-black uppercase tracking-widest border-b border-neutral-900 pb-2 flex items-center gap-1.5">
-                    <Settings className="w-3.5 h-3.5 text-[#C1121F]" />
-                    Optional Frame Finish
-                  </h4>
-                  <div className="grid grid-cols-2 gap-2.5">
-                    {FRAME_FINISHES.map((frame) => (
-                      <button
-                        key={frame.name}
-                        onClick={() => setFrameName(frame.name)}
-                        className={`p-3 rounded-xl border text-left cursor-pointer transition-all duration-300 active:scale-98 ${
-                          frameName === frame.name 
-                            ? 'border-[#C1121F] bg-[#C1121F]/10 text-white shadow shadow-red-950/15' 
-                            : 'border-neutral-900 bg-neutral-950/45 text-neutral-450 hover:border-neutral-750'
-                        }`}
-                      >
-                        <div className="text-[10px] font-black uppercase tracking-wider">{frame.name}</div>
-                        <div className="text-[8px] text-neutral-500 mt-1 font-semibold line-clamp-1">{frame.description}</div>
-                        <div className="text-[9px] text-[#FF4D4D] font-black mt-1.5">
-                          {frame.additionalPrice > 0 ? `+ ₹${frame.additionalPrice}` : 'Included'}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* 5. Saved Designs Tab */}
+            {/* 4. Saved Designs Tab */}
             {activeTab === 'saved' && (
               <div className="space-y-4">
                 <div className="space-y-1">
@@ -1568,33 +1285,27 @@ function ConfiguratorContent() {
               <span className="text-[9px] text-neutral-500 font-black">Design Blueprint Summary</span>
               <div className="flex justify-between border-b border-neutral-900 pb-1.5">
                 <span>Poster Size ({sizeName})</span>
-                <span className="text-neutral-550">
-                  {POSTER_SIZES.find(s => s.name === sizeName)?.additionalPrice || 0 > 0 
-                    ? `+ ₹${POSTER_SIZES.find(s => s.name === sizeName)?.additionalPrice}` 
-                    : 'Included'}
+                <span className="text-white font-bold">
+                  ₹{priceBreakdown.unitPrice}
                 </span>
               </div>
               <div className="flex justify-between border-b border-neutral-900 pb-1.5">
-                <span>Paper Grade ({paperType})</span>
-                <span className="text-neutral-550">
-                  {PAPER_TYPES.find(p => p.name === paperType)?.additionalPrice || 0 > 0 
-                    ? `+ ₹${PAPER_TYPES.find(p => p.name === paperType)?.additionalPrice}` 
-                    : 'Included'}
+                <span>Canvas Orientation</span>
+                <span className="text-white font-bold">
+                  {orientation === 'PORTRAIT' ? 'Portrait' : 'Landscape'}
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span>Frame Finish ({frameName})</span>
-                <span className="text-neutral-550">
-                  {FRAME_FINISHES.find(f => f.name === frameName)?.additionalPrice || 0 > 0 
-                    ? `+ ₹${FRAME_FINISHES.find(f => f.name === frameName)?.additionalPrice}` 
-                    : 'Included'}
-                </span>
-              </div>
+              {quantity > 1 && (
+                <div className="flex justify-between border-b border-neutral-900 pb-1.5">
+                  <span>Quantity</span>
+                  <span className="text-white font-bold">×{quantity}</span>
+                </div>
+              )}
             </div>
 
             <div className="flex justify-between items-baseline border-t border-neutral-900 pt-3">
               <span className="text-xs text-neutral-400 font-extrabold uppercase tracking-widest">Calculated Subtotal</span>
-              <span className="text-xl font-black text-white">₹{priceBreakdown.unitPrice.toFixed(0)}</span>
+              <span className="text-xl font-black text-white">₹{priceBreakdown.total.toFixed(0)}</span>
             </div>
           </div>
         </div>
@@ -1659,7 +1370,7 @@ function ConfiguratorContent() {
           {activeObject && (
             <div className="w-full flex items-center justify-between p-2.5 bg-neutral-950 border border-neutral-900 rounded-2xl max-w-md animate-fade-in shadow-lg">
               <span className="text-[9px] text-[#FF4D4D] font-black uppercase tracking-widest pl-2">
-                Selected ({activeObject.type === 'i-text' ? 'Typography' : 'Artwork'})
+                Selected ({activeObject.type === 'i-text' ? 'Typography' : 'Custom Image'})
               </span>
               <div className="flex items-center gap-1.5">
                 <button
@@ -1696,16 +1407,12 @@ function ConfiguratorContent() {
           <div className="relative flex items-center justify-center p-8 bg-[#050505] border border-neutral-900 rounded-3xl overflow-hidden shadow-2xl w-full max-w-lg min-h-[400px]">
             <div className="absolute w-[220px] h-[220px] rounded-full bg-[#C1121F]/5 blur-3xl pointer-events-none"></div>
 
-            {/* Framing overlay */}
-            <div className={`relative transition-all duration-500 bg-[#050505] ${frameBorderClass} overflow-hidden shadow-2xl rounded-2xl`}>
+            {/* Poster Canvas Preview */}
+            <div className="relative transition-all duration-500 bg-[#050505] overflow-hidden shadow-2xl rounded-2xl">
               <canvas ref={canvasRef} className="shadow-lg shadow-neutral-950/90 rounded-xl" />
               
-              {/* Paper overlay reflection effect */}
-              <div className={`absolute inset-0 pointer-events-none mix-blend-overlay ${
-                paperType === 'Glossy' 
-                  ? 'bg-gradient-to-tr from-white/10 via-transparent to-white/20' 
-                  : 'bg-white/[0.03]'
-              }`}></div>
+              {/* Archival paper overlay reflection effect */}
+              <div className="absolute inset-0 pointer-events-none mix-blend-overlay bg-white/[0.03]"></div>
             </div>
           </div>
 

@@ -26,6 +26,11 @@ export default async function AdminEditProductPage({ params }: EditProductPagePr
       include: {
         images: true,
         inventory: true,
+        variants: {
+          include: {
+            size: true,
+          },
+        },
       },
     }),
     prisma.category.findMany({

@@ -3,7 +3,7 @@
 import { useTransition, useState, useRef, useMemo } from 'react';
 import { createProductAction, updateProductAction } from '@/app/admin/actions';
 import Link from 'next/link';
-import { Save, Image as ImageIcon, Sparkles, FileText, Upload, Trash2, Loader2 } from 'lucide-react';
+import { Save, Image as ImageIcon, Sparkles, FileText, Upload, Trash2, Loader2, Layers } from 'lucide-react';
 
 interface CategoryData {
   id: string;
@@ -26,6 +26,17 @@ interface ProductFormProps {
     trending: boolean;
     images: { url: string }[];
     inventory?: { quantity: number } | null;
+    variants?: Array<{
+      id: string;
+      sizeId: string;
+      price?: number | null;
+      additionalPrice?: number | null;
+      stock?: number;
+      size?: {
+        name: string;
+        dimensions?: string;
+      } | null;
+    }>;
   };
 }
 
@@ -125,6 +136,32 @@ export default function ProductForm({ categories, initialData }: ProductFormProp
   };
   const currentStock = initialData?.inventory?.quantity ?? 0;
 
+  const sizePrices = useMemo(() => {
+    const defaults = {
+      A6: 19,
+      A5: 39,
+      A4: 59,
+      A3: 99,
+    };
+
+    if (!initialData?.variants || initialData.variants.length === 0) {
+      return defaults;
+    }
+
+    const map: Record<string, number> = { ...defaults };
+    for (const v of initialData.variants) {
+      const sizeName = v.size?.name;
+      if (sizeName && sizeName in map) {
+        if (v.price !== null && v.price !== undefined) {
+          map[sizeName] = v.price;
+        } else {
+          map[sizeName] = initialData.price + (v.additionalPrice || 0);
+        }
+      }
+    }
+    return map;
+  }, [initialData]);
+
   return (
     <form onSubmit={handleSubmit} className="space-y-8 max-w-3xl">
       {isEdit && <input type="hidden" name="id" value={initialData.id} />}
@@ -175,6 +212,111 @@ export default function ProductForm({ categories, initialData }: ProductFormProp
           </div>
         </div>
 
+        {/* Section: Product-Specific Size Pricing */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between border-b border-neutral-900 pb-3">
+            <div className="flex items-center gap-2">
+              <Layers className="w-4 h-4 text-[#C1121F]" />
+              <h3 className="text-xs text-neutral-200 font-extrabold uppercase tracking-widest">
+                Product-Specific Size Pricing
+              </h3>
+            </div>
+            <span className="text-[9px] text-[#FF4D4D] bg-[#C1121F]/10 border border-[#C1121F]/30 px-2 py-0.5 rounded font-black uppercase tracking-wider">
+              Authoritative Variant Pricing
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* A6 Price */}
+            <div className="bg-neutral-950 p-4 border border-neutral-900 rounded-2xl space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black uppercase text-white tracking-wide">A6</span>
+                <span className="text-[9px] text-neutral-500 font-bold">10.5 × 14.8 cm</span>
+              </div>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500 text-xs font-bold">₹</span>
+                <input
+                  type="number"
+                  name="price_A6"
+                  defaultValue={sizePrices.A6}
+                  required
+                  min="0"
+                  step="1"
+                  placeholder="19"
+                  className="w-full pl-7 pr-3 py-2.5 bg-neutral-900 border border-neutral-800 focus:border-[#C1121F] rounded-xl text-xs text-white focus:outline-none transition-all font-mono font-bold"
+                />
+              </div>
+              <p className="text-[9px] text-neutral-500">Default: ₹19</p>
+            </div>
+
+            {/* A5 Price */}
+            <div className="bg-neutral-950 p-4 border border-neutral-900 rounded-2xl space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black uppercase text-white tracking-wide">A5</span>
+                <span className="text-[9px] text-neutral-500 font-bold">14.8 × 21 cm</span>
+              </div>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500 text-xs font-bold">₹</span>
+                <input
+                  type="number"
+                  name="price_A5"
+                  defaultValue={sizePrices.A5}
+                  required
+                  min="0"
+                  step="1"
+                  placeholder="39"
+                  className="w-full pl-7 pr-3 py-2.5 bg-neutral-900 border border-neutral-800 focus:border-[#C1121F] rounded-xl text-xs text-white focus:outline-none transition-all font-mono font-bold"
+                />
+              </div>
+              <p className="text-[9px] text-neutral-500">Default: ₹39</p>
+            </div>
+
+            {/* A4 Price */}
+            <div className="bg-neutral-950 p-4 border border-neutral-900 rounded-2xl space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black uppercase text-white tracking-wide">A4 (Standard)</span>
+                <span className="text-[9px] text-neutral-500 font-bold">21 × 29.7 cm</span>
+              </div>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500 text-xs font-bold">₹</span>
+                <input
+                  type="number"
+                  name="price_A4"
+                  defaultValue={sizePrices.A4}
+                  required
+                  min="0"
+                  step="1"
+                  placeholder="59"
+                  className="w-full pl-7 pr-3 py-2.5 bg-neutral-900 border border-neutral-800 focus:border-[#C1121F] rounded-xl text-xs text-white focus:outline-none transition-all font-mono font-bold"
+                />
+              </div>
+              <p className="text-[9px] text-neutral-500">Default: ₹59</p>
+            </div>
+
+            {/* A3 Price */}
+            <div className="bg-neutral-950 p-4 border border-neutral-900 rounded-2xl space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black uppercase text-white tracking-wide">A3</span>
+                <span className="text-[9px] text-neutral-500 font-bold">29.7 × 42 cm</span>
+              </div>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500 text-xs font-bold">₹</span>
+                <input
+                  type="number"
+                  name="price_A3"
+                  defaultValue={sizePrices.A3}
+                  required
+                  min="0"
+                  step="1"
+                  placeholder="99"
+                  className="w-full pl-7 pr-3 py-2.5 bg-neutral-900 border border-neutral-800 focus:border-[#C1121F] rounded-xl text-xs text-white focus:outline-none transition-all font-mono font-bold"
+                />
+              </div>
+              <p className="text-[9px] text-neutral-500">Default: ₹99</p>
+            </div>
+          </div>
+        </div>
+
         {/* Section: Financials & Categorization */}
         <div className="space-y-4">
           <div className="flex items-center gap-2 border-b border-neutral-900 pb-3">
@@ -193,11 +335,11 @@ export default function ProductForm({ categories, initialData }: ProductFormProp
               <input
                 type="number"
                 name="price"
-                defaultValue={initialData?.price || ''}
+                defaultValue={initialData?.price || 59}
                 required
                 min="0"
                 step="1"
-                placeholder="399"
+                placeholder="59"
                 className="w-full px-4 py-3 bg-neutral-950 border border-neutral-900 rounded-xl text-xs text-white focus:outline-none focus:border-[#C1121F] transition-all font-mono"
               />
             </div>
@@ -214,7 +356,7 @@ export default function ProductForm({ categories, initialData }: ProductFormProp
                 required
                 min="0"
                 step="1"
-                placeholder="799"
+                placeholder="149"
                 className="w-full px-4 py-3 bg-neutral-950 border border-neutral-900 rounded-xl text-xs text-white focus:outline-none focus:border-[#C1121F] transition-all font-mono"
               />
             </div>

@@ -66,6 +66,10 @@ export default function SafeImage({ src, alt, className, ...props }: SafeImagePr
   const srcString = String(src);
   const isRemote = srcString.startsWith('http://') || srcString.startsWith('https://');
 
+  // Ensure fill mode images always have responsive sizes to prevent Next.js image warnings
+  const resolvedSizes = props.sizes ?? (props.fill ? '(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw' : undefined);
+  const resolvedLoading = props.loading ?? (props.priority ? 'eager' : undefined);
+
   return (
     <Image
       src={src}
@@ -74,6 +78,8 @@ export default function SafeImage({ src, alt, className, ...props }: SafeImagePr
       onError={() => setHasError(true)}
       unoptimized={isRemote ? !isOptimized : false}
       {...props}
+      sizes={resolvedSizes}
+      loading={resolvedLoading}
     />
   );
 }

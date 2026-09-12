@@ -181,7 +181,6 @@ export default function Navbar() {
             )}
             <button
               type="button"
-              suppressHydrationWarning
               onClick={handleSearchClick}
               className="p-2.5 hover:text-white transition-all hover:scale-110 active:scale-90 cursor-pointer"
               aria-label="Search"
@@ -207,7 +206,6 @@ export default function Navbar() {
           <div className="relative flex items-center" ref={menuRef}>
             <button
               type="button"
-              suppressHydrationWarning
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className={`p-2.5 transition-all hover:scale-110 active:scale-90 cursor-pointer ${
                 isMenuOpen ? 'text-white scale-110' : 'hover:text-white text-neutral-450'

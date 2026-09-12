@@ -18,6 +18,8 @@ import {
 import {
   toggleProductLikeAction
 } from '@/app/actions/like';
+import { getVariantUnitPrice } from '@/lib/pricing';
+import PosterSizeReference from './PosterSizeReference';
 
 type ProductWithRelations = Prisma.ProductGetPayload<{
   include: {
@@ -243,21 +245,25 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
 
   // Extract ONLY the allowed sizes (A3, A4, A5, A6) from variants, ordered strictly: A3, A4, A5, A6
   const sizes = useMemo(() => {
-    const map = new Map<string, { id: string; name: string; dimensions: string; additionalPrice: number }>();
+    const map = new Map<string, { id: string; name: string; dimensions: string; price: number }>();
     product.variants.forEach((v) => {
       if (v.size && ALLOWED_SIZES.includes(v.size.name)) {
-        map.set(v.size.id, {
-          id: v.size.id,
-          name: v.size.name,
-          dimensions: SIZE_DISPLAY_DIMENSIONS[v.size.name] || v.size.dimensions,
-          additionalPrice: v.size.additionalPrice,
-        });
+        const variantPrice = getVariantUnitPrice(v, product.price);
+        const existing = map.get(v.size.id);
+        if (!existing || (!v.frameId && variantPrice < existing.price)) {
+          map.set(v.size.id, {
+            id: v.size.id,
+            name: v.size.name,
+            dimensions: SIZE_DISPLAY_DIMENSIONS[v.size.name] || v.size.dimensions,
+            price: variantPrice,
+          });
+        }
       }
     });
     return Array.from(map.values()).sort(
       (a, b) => ALLOWED_SIZES.indexOf(a.name) - ALLOWED_SIZES.indexOf(b.name)
     );
-  }, [product.variants, ALLOWED_SIZES, SIZE_DISPLAY_DIMENSIONS]);
+  }, [product.variants, product.price, ALLOWED_SIZES, SIZE_DISPLAY_DIMENSIONS]);
 
   // Default size: prioritize A4, fallback to first available size
   const defaultSizeId = useMemo(() => {
@@ -295,19 +301,24 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
           v.frame?.name?.toLowerCase().includes('no frame') ||
           v.frame?.name?.toLowerCase().includes('unframed')
       ) ||
-      [...matching].sort((a, b) => a.additionalPrice - b.additionalPrice)[0]
+      [...matching].sort((a, b) => getVariantUnitPrice(a, product.price) - getVariantUnitPrice(b, product.price))[0]
     );
-  }, [product.variants, selectedSizeId]);
+  }, [product.variants, product.price, selectedSizeId]);
 
-  // Recalculate dynamic prices server-rule style
+  // Recalculate dynamic prices based on selected variant
   const prices = useMemo(() => {
-    const basePrice = product.price;
-    const variantAdd = selectedVariant?.additionalPrice || 0;
-    const finalPrice = basePrice + variantAdd;
-    // Calculate MRP discount snapshot
-    const finalMRP = product.MRP + variantAdd;
+    const unitPrice = getVariantUnitPrice(selectedVariant, product.price);
+    let finalMRP = product.MRP;
+    if (product.discount > 0 && product.price > 0) {
+      finalMRP = Math.round(unitPrice / (1 - product.discount / 100));
+    } else if (product.MRP > product.price) {
+      finalMRP = unitPrice + (product.MRP - product.price);
+    } else {
+      finalMRP = unitPrice;
+    }
+
     return {
-      price: finalPrice,
+      price: unitPrice,
       MRP: finalMRP,
       discount: product.discount,
     };
@@ -477,6 +488,7 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
                   alt={`${product.title} - View ${idx + 1}`}
                   fill
                   priority={idx === 0}
+                  loading={idx === 0 ? 'eager' : undefined}
                   sizes="(max-width: 1024px) 100vw, 50vw"
                   className="object-cover transition-transform duration-700 hover:scale-105"
                 />
@@ -536,7 +548,7 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
                   >
                     <div className={`relative w-20 h-24 rounded-2xl border-2 overflow-hidden bg-neutral-950 transition-all duration-300 ${activeImageIndex === idx ? 'border-[#C1121F] shadow-lg shadow-red-950/20' : 'border-neutral-900 group-hover:border-neutral-700'
                       }`}>
-                      <Image src={img.url} alt={label} fill className="object-cover" />
+                      <Image src={img.url} alt={label} fill sizes="80px" className="object-cover" />
                     </div>
                     <span className={`text-[9px] uppercase font-black tracking-widest transition-colors duration-300 ${activeImageIndex === idx ? 'text-[#FF4D4D]' : 'text-neutral-500 group-hover:text-neutral-350'
                       }`}>
@@ -629,11 +641,17 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
                         : 'border-neutral-900 bg-neutral-950/40 text-neutral-400 hover:border-neutral-750 hover:text-white'
                     }`}
                   >
-                    <div className="text-xs font-black uppercase tracking-wider">{size.name}</div>
+                    <div className="flex items-center justify-between">
+                      <div className="text-xs font-black uppercase tracking-wider">{size.name}</div>
+                      <div className="text-xs font-mono font-black text-white">₹{size.price.toFixed(0)}</div>
+                    </div>
                     <div className="text-[10px] text-neutral-500 font-bold mt-1">{size.dimensions}</div>
                   </button>
                 ))}
               </div>
+
+              {/* Poster Physical Size Reference */}
+              <PosterSizeReference className="pt-2" />
             </div>
           </div>
 
