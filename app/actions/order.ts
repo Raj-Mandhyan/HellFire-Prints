@@ -6,7 +6,8 @@ import { Prisma } from '@prisma/client';
 import { createHmac, timingSafeEqual } from 'crypto';
 import Razorpay from 'razorpay';
 import { calculateCartTotal } from '@/lib/discounts';
-import { getVariantUnitPrice } from '@/lib/pricing';
+import { getVariantUnitPrice, MINIMUM_ORDER_VALUE } from '@/lib/pricing';
+import { sendOrderAdminNotification } from '@/lib/email';
 
 interface ShippingAddressInput {
   name: string;
@@ -105,6 +106,17 @@ export async function initiatePaymentAction(input: InitiatePaymentInput) {
     const shippingFee = breakdown.shippingFee;
     const tax = 0;
     const total = breakdown.total;
+
+    // Authoritative Server-side Minimum Order Validation (₹50)
+    // Server recalculates the total from trusted product prices and quantities.
+    const payableMerchandiseTotal = Math.max(0, subtotal - discount);
+    if (payableMerchandiseTotal < MINIMUM_ORDER_VALUE || total < MINIMUM_ORDER_VALUE) {
+      const shortfall = MINIMUM_ORDER_VALUE - payableMerchandiseTotal;
+      const formattedShortfall = shortfall % 1 === 0 ? shortfall.toFixed(0) : shortfall.toFixed(2);
+      return {
+        error: `Minimum order value is ₹${MINIMUM_ORDER_VALUE}. Add ₹${formattedShortfall} more to place your order.`,
+      };
+    }
 
     // 3. Resolve shipping address details
     let addressId = selectedAddressId;
@@ -380,8 +392,9 @@ export async function processSuccessfulPayment(
   razorpayPaymentId: string,
   razorpaySignature?: string
 ) {
+  let updatedOrder;
   try {
-    return await prisma.$transaction(async (tx) => {
+    updatedOrder = await prisma.$transaction(async (tx) => {
       // 1. Fetch order details
       const order = await tx.order.findUnique({
         where: { id: orderId },
@@ -461,7 +474,7 @@ export async function processSuccessfulPayment(
       }
 
       // 4. Update local Order statuses
-      const updatedOrder = await tx.order.update({
+      const finalOrder = await tx.order.update({
         where: { id: order.id },
         data: {
           orderStatus: 'CONFIRMED',
@@ -481,7 +494,7 @@ export async function processSuccessfulPayment(
         }
       }
 
-      return updatedOrder;
+      return finalOrder;
     });
   } catch (error: unknown) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
@@ -490,9 +503,22 @@ export async function processSuccessfulPayment(
         where: { id: orderId },
       });
       if (confirmedOrder && confirmedOrder.orderStatus === 'CONFIRMED') {
-        return confirmedOrder;
+        updatedOrder = confirmedOrder;
+      } else {
+        throw error;
       }
+    } else {
+      throw error;
     }
-    throw error;
   }
+
+  // Trigger admin email notification asynchronously outside transaction.
+  // Idempotent locking inside sendOrderAdminNotification ensures no duplicate sends.
+  try {
+    await sendOrderAdminNotification(orderId);
+  } catch (emailErr) {
+    console.error(`[Admin Email] Non-blocking notification dispatch error for order ${orderId}:`, emailErr);
+  }
+
+  return updatedOrder;
 }

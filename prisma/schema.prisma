@@ -269,6 +269,10 @@ model Order {
   razorpayOrderId        String?        @unique
   shipping               Shipping?
   additionalNote         String?        @db.Text
+  adminEmailStatus       String?        @default("PENDING")
+  adminEmailSentAt       DateTime?
+  adminEmailId           String?
+  adminEmailError        String?        @db.Text
   createdAt              DateTime       @default(now())
   updatedAt              DateTime       @updatedAt
 }

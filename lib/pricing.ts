@@ -4,11 +4,13 @@
  */
 
 export const DEFAULT_SIZE_PRICES: Record<'A6' | 'A5' | 'A4' | 'A3', number> = {
-  A6: 19,
-  A5: 39,
-  A4: 59,
-  A3: 99,
+  A6: 7,
+  A5: 15,
+  A4: 29,
+  A3: 49,
 };
+
+export const MINIMUM_ORDER_VALUE = 50;
 
 export const ALLOWED_SIZES = ['A6', 'A5', 'A4', 'A3'] as const;
 export type AllowedSize = typeof ALLOWED_SIZES[number];

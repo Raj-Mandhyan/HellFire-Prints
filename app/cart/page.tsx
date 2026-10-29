@@ -8,6 +8,7 @@ import { useCart } from '@/context/CartContext';
 import { Trash2, Plus, Minus, ArrowLeft, ShoppingBag, AlertCircle, Tag, Check, Sparkles } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import ScrollReveal from '@/components/ScrollReveal';
+import { MINIMUM_ORDER_VALUE } from '@/lib/pricing';
 
 export default function CartPage() {
   const { cart, updateQuantity, removeFromCart, isLoading, refreshCart } = useCart();
@@ -18,6 +19,10 @@ export default function CartPage() {
   const [couponCodeInput, setCouponCodeInput] = useState('');
   const [couponFormError, setCouponFormError] = useState<string | null>(null);
   const [isProcessingCoupon, setIsProcessingCoupon] = useState(false);
+
+  const isMinimumOrderMet = (cart?.total || 0) >= MINIMUM_ORDER_VALUE;
+  const shortfallAmount = Math.max(0, MINIMUM_ORDER_VALUE - (cart?.total || 0));
+  const formattedShortfall = shortfallAmount % 1 === 0 ? shortfallAmount.toFixed(0) : shortfallAmount.toFixed(2);
 
   const handleUpdateQuantity = async (itemId: string, currentQty: number, change: number) => {
     const newQty = currentQty + change;
@@ -350,15 +355,39 @@ export default function CartPage() {
                       </div>
                     </div>
 
+                    {/* Minimum Order Notice Banner */}
+                    {!isMinimumOrderMet && (
+                      <div className="p-3.5 bg-amber-950/20 border border-amber-900/60 rounded-xl space-y-1">
+                        <p className="text-[10px] font-bold text-amber-400 flex items-center gap-1.5 uppercase tracking-wider">
+                          <AlertCircle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                          Minimum Order Value: ₹{MINIMUM_ORDER_VALUE}
+                        </p>
+                        <p className="text-[9px] text-neutral-400 font-semibold leading-normal">
+                          Minimum order value is ₹{MINIMUM_ORDER_VALUE}. Add ₹{formattedShortfall} more to place your order.
+                        </p>
+                      </div>
+                    )}
+
                     {/* Action Buttons */}
                     <div className="space-y-3 pt-5 border-t border-neutral-900">
-                      <Link
-                        href="/checkout"
-                        className="w-full inline-flex items-center justify-center gap-2.5 bg-[#C1121F] hover:bg-[#A00F19] text-white py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all shadow-lg shadow-red-950/20 text-center active:scale-98 cursor-pointer fiery-button-glow"
-                      >
-                        <ShoppingBag className="w-4 h-4 text-white" />
-                        Proceed to Checkout
-                      </Link>
+                      {isMinimumOrderMet ? (
+                        <Link
+                          href="/checkout"
+                          className="w-full inline-flex items-center justify-center gap-2.5 bg-[#C1121F] hover:bg-[#A00F19] text-white py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all shadow-lg shadow-red-950/20 text-center active:scale-98 cursor-pointer fiery-button-glow"
+                        >
+                          <ShoppingBag className="w-4 h-4 text-white" />
+                          Proceed to Checkout
+                        </Link>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled
+                          className="w-full inline-flex items-center justify-center gap-2 bg-neutral-900 border border-neutral-800 text-neutral-500 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest cursor-not-allowed select-none"
+                        >
+                          <ShoppingBag className="w-4 h-4 text-neutral-600" />
+                          ADD ₹{formattedShortfall} MORE TO CHECKOUT
+                        </button>
+                      )}
                       <Link
                         href="/"
                         className="w-full inline-flex items-center justify-center border border-neutral-900 bg-neutral-950/40 hover:bg-neutral-900 text-neutral-450 hover:text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all text-center active:scale-98"

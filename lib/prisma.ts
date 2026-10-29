@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
+import { PrismaNeon } from '@prisma/adapter-neon';
 import { Pool } from 'pg';
 
 // Prevent multiple instances of Prisma Client in development due to hot reloading
@@ -19,8 +20,8 @@ const connectionString = databaseUrl.replace(
   '$1verify-full'
 );
 
-const pool = new Pool({ connectionString });
-const adapter = new PrismaPg(pool);
+const isNeon = connectionString.includes('neon.tech');
+const adapter = isNeon ? new PrismaNeon({ connectionString }) : new PrismaPg(new Pool({ connectionString }));
 
 export const prisma = globalForPrisma.prisma ?? new PrismaClient({ adapter });
 

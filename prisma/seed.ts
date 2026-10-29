@@ -575,10 +575,10 @@ async function main() {
       let variantCount = 0;
 
       const DEFAULT_SIZE_PRICES: Record<string, number> = {
-        A6: 19,
-        A5: 39,
-        A4: 59,
-        A3: 99,
+        A6: 7,
+        A5: 15,
+        A4: 29,
+        A3: 49,
       };
 
       for (const size of dbSizes) {
@@ -586,7 +586,7 @@ async function main() {
           data: {
             productId: product.id,
             sizeId: size.id,
-            price: DEFAULT_SIZE_PRICES[size.name] ?? 59,
+            price: DEFAULT_SIZE_PRICES[size.name] ?? 29,
             additionalPrice: 0,
             stock: 25,
             SKU: `${product.SKU}-${size.name}`.replace(/\s+/g, ''),

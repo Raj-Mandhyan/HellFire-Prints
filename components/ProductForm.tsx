@@ -4,6 +4,7 @@ import { useTransition, useState, useRef, useMemo } from 'react';
 import { createProductAction, updateProductAction } from '@/app/admin/actions';
 import Link from 'next/link';
 import { Save, Image as ImageIcon, Sparkles, FileText, Upload, Trash2, Loader2, Layers } from 'lucide-react';
+import { DEFAULT_SIZE_PRICES } from '@/lib/pricing';
 
 interface CategoryData {
   id: string;
@@ -138,10 +139,10 @@ export default function ProductForm({ categories, initialData }: ProductFormProp
 
   const sizePrices = useMemo(() => {
     const defaults = {
-      A6: 19,
-      A5: 39,
-      A4: 59,
-      A3: 99,
+      A6: DEFAULT_SIZE_PRICES.A6,
+      A5: DEFAULT_SIZE_PRICES.A5,
+      A4: DEFAULT_SIZE_PRICES.A4,
+      A3: DEFAULT_SIZE_PRICES.A3,
     };
 
     if (!initialData?.variants || initialData.variants.length === 0) {
@@ -242,11 +243,11 @@ export default function ProductForm({ categories, initialData }: ProductFormProp
                   required
                   min="0"
                   step="1"
-                  placeholder="19"
+                  placeholder="7"
                   className="w-full pl-7 pr-3 py-2.5 bg-neutral-900 border border-neutral-800 focus:border-[#C1121F] rounded-xl text-xs text-white focus:outline-none transition-all font-mono font-bold"
                 />
               </div>
-              <p className="text-[9px] text-neutral-500">Default: ₹19</p>
+              <p className="text-[9px] text-neutral-500">Default: ₹7</p>
             </div>
 
             {/* A5 Price */}
@@ -264,11 +265,11 @@ export default function ProductForm({ categories, initialData }: ProductFormProp
                   required
                   min="0"
                   step="1"
-                  placeholder="39"
+                  placeholder="15"
                   className="w-full pl-7 pr-3 py-2.5 bg-neutral-900 border border-neutral-800 focus:border-[#C1121F] rounded-xl text-xs text-white focus:outline-none transition-all font-mono font-bold"
                 />
               </div>
-              <p className="text-[9px] text-neutral-500">Default: ₹39</p>
+              <p className="text-[9px] text-neutral-500">Default: ₹15</p>
             </div>
 
             {/* A4 Price */}
@@ -286,11 +287,11 @@ export default function ProductForm({ categories, initialData }: ProductFormProp
                   required
                   min="0"
                   step="1"
-                  placeholder="59"
+                  placeholder="29"
                   className="w-full pl-7 pr-3 py-2.5 bg-neutral-900 border border-neutral-800 focus:border-[#C1121F] rounded-xl text-xs text-white focus:outline-none transition-all font-mono font-bold"
                 />
               </div>
-              <p className="text-[9px] text-neutral-500">Default: ₹59</p>
+              <p className="text-[9px] text-neutral-500">Default: ₹29</p>
             </div>
 
             {/* A3 Price */}
@@ -308,11 +309,11 @@ export default function ProductForm({ categories, initialData }: ProductFormProp
                   required
                   min="0"
                   step="1"
-                  placeholder="99"
+                  placeholder="49"
                   className="w-full pl-7 pr-3 py-2.5 bg-neutral-900 border border-neutral-800 focus:border-[#C1121F] rounded-xl text-xs text-white focus:outline-none transition-all font-mono font-bold"
                 />
               </div>
-              <p className="text-[9px] text-neutral-500">Default: ₹99</p>
+              <p className="text-[9px] text-neutral-500">Default: ₹49</p>
             </div>
           </div>
         </div>
@@ -335,11 +336,11 @@ export default function ProductForm({ categories, initialData }: ProductFormProp
               <input
                 type="number"
                 name="price"
-                defaultValue={initialData?.price || 59}
+                defaultValue={initialData?.price || DEFAULT_SIZE_PRICES.A4}
                 required
                 min="0"
                 step="1"
-                placeholder="59"
+                placeholder="29"
                 className="w-full px-4 py-3 bg-neutral-950 border border-neutral-900 rounded-xl text-xs text-white focus:outline-none focus:border-[#C1121F] transition-all font-mono"
               />
             </div>

@@ -7,6 +7,7 @@ import { useCart } from '@/context/CartContext';
 import { initiatePaymentAction, verifyPaymentAction } from '@/app/actions/order';
 import { MapPin, User, Phone, Map, AlertCircle, ShoppingBag, Plus, Check } from 'lucide-react';
 import ScrollReveal from './ScrollReveal';
+import { MINIMUM_ORDER_VALUE } from '@/lib/pricing';
 
 interface SavedAddress {
   id: string;
@@ -77,6 +78,10 @@ export default function CheckoutPageClient({
   const [isVerifying, setIsVerifying] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  const isMinimumOrderMet = calculations.total >= MINIMUM_ORDER_VALUE;
+  const shortfallAmount = Math.max(0, MINIMUM_ORDER_VALUE - calculations.total);
+  const formattedShortfall = shortfallAmount % 1 === 0 ? shortfallAmount.toFixed(0) : shortfallAmount.toFixed(2);
+
   // Dynamically load Razorpay standard script from official CDN
   const loadRazorpayScript = () => {
     return new Promise((resolve) => {
@@ -94,6 +99,9 @@ export default function CheckoutPageClient({
 
   // Validate form inputs
   const validateAddress = () => {
+    if (!isMinimumOrderMet) {
+      return `Minimum order value is ₹${MINIMUM_ORDER_VALUE}. Add ₹${formattedShortfall} more to place your order.`;
+    }
     if (showNewAddressForm) {
       const { name, phone, street, city, state, postalCode } = newAddress;
       if (!name || name.trim().length < 2) return 'Please enter a valid full name.';
@@ -519,10 +527,23 @@ export default function CheckoutPageClient({
                 </div>
               </div>
 
+              {/* Minimum Order Warning Alert */}
+              {!isMinimumOrderMet && (
+                <div className="p-4 bg-amber-950/20 border border-amber-900/60 rounded-2xl space-y-1.5">
+                  <p className="text-[10px] font-bold text-amber-400 flex items-center gap-1.5 uppercase tracking-wider">
+                    <AlertCircle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                    Minimum Order Value: ₹{MINIMUM_ORDER_VALUE}
+                  </p>
+                  <p className="text-[10px] text-neutral-400 font-semibold leading-normal">
+                    Minimum order value is ₹{MINIMUM_ORDER_VALUE}. Add ₹{formattedShortfall} more to place your order.
+                  </p>
+                </div>
+              )}
+
               {/* Submission Button */}
               <button
                 type="submit"
-                disabled={isSubmitting || isVerifying}
+                disabled={isSubmitting || isVerifying || !isMinimumOrderMet}
                 className="w-full inline-flex items-center justify-center gap-2.5 bg-gradient-to-r from-[#C1121F] to-[#FF4D4D] border-transparent text-white font-black py-4 rounded-2xl text-xs uppercase tracking-widest transition-all duration-300 disabled:bg-neutral-950 disabled:border-neutral-900 disabled:text-neutral-600 disabled:cursor-not-allowed cursor-pointer active:scale-97 fiery-button-glow shadow-lg shadow-red-950/20"
               >
                 {isVerifying ? (
@@ -534,6 +555,11 @@ export default function CheckoutPageClient({
                   <>
                     <div className="w-4 h-4 border-2 border-t-transparent border-white rounded-full animate-spin"></div>
                     <span>OPENING GATEWAY...</span>
+                  </>
+                ) : !isMinimumOrderMet ? (
+                  <>
+                    <ShoppingBag className="w-4.5 h-4.5 text-neutral-600" />
+                    <span>ADD ₹{formattedShortfall} MORE TO PLACE ORDER</span>
                   </>
                 ) : (
                   <>

@@ -25,6 +25,6 @@ export const BASE_PRICE = 0;
 
 export function calculateCustomPosterPrice(config: Partial<CustomPosterConfig>): number {
   const sizeName = (config.sizeName || 'A4') as AllowedSize;
-  return DEFAULT_SIZE_PRICES[sizeName] ?? 59;
+  return DEFAULT_SIZE_PRICES[sizeName] ?? DEFAULT_SIZE_PRICES.A4;
 }
 

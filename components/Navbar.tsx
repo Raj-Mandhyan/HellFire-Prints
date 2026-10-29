@@ -5,6 +5,7 @@ import { useCart } from '@/context/CartContext';
 import { ShoppingCart, User, Flame, Search, X, MoreVertical, ChevronRight } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
+import UpdatesStrip from '@/components/UpdatesStrip';
 
 export default function Navbar() {
   const { cartCount } = useCart();
@@ -99,6 +100,12 @@ export default function Navbar() {
         ? 'premium-glass shadow-xl shadow-black/80 border-b border-neutral-900/80 bg-neutral-950/80'
         : 'border-b border-transparent bg-transparent'
       }`}>
+      <UpdatesStrip
+        updates={[
+          "Orders will be placed for a minimum of total of Rs. 50. Below which, no orders will be accepted.",
+        ]}
+        variant="top-notice"
+      />
       <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
         {/* Left Side: Brand Logo */}
         <Link href="/" className="flex items-center gap-2 group">

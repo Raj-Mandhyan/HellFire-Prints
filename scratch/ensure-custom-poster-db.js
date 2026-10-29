@@ -1,21 +1,22 @@
 require('dotenv').config();
 const { Pool } = require('pg');
 const { PrismaPg } = require('@prisma/adapter-pg');
+const { PrismaNeon } = require('@prisma/adapter-neon');
 const { PrismaClient } = require('@prisma/client');
 
 const connectionString = process.env.DATABASE_URL.replace(
   /([?&]sslmode=)(?:require|prefer|verify-ca)(?=&|$)/g,
   '$1verify-full'
 );
-const pool = new Pool({ connectionString });
-const adapter = new PrismaPg(pool);
+const isNeon = connectionString.includes('neon.tech');
+const adapter = isNeon ? new PrismaNeon({ connectionString }) : new PrismaPg(new Pool({ connectionString }));
 const prisma = new PrismaClient({ adapter });
 
 const DEFAULT_PRICES = {
-  A6: 19,
-  A5: 39,
-  A4: 59,
-  A3: 99,
+  A6: 7,
+  A5: 15,
+  A4: 29,
+  A3: 49,
 };
 
 async function ensureCustomPosterProduct() {
@@ -40,7 +41,7 @@ async function ensureCustomPosterProduct() {
         title: 'Custom Poster Print',
         slug: 'custom-poster',
         description: 'Create your own personalized design. Upload custom artwork and overlay text. Handcrafted to order.',
-        price: 19,
+        price: 7,
         MRP: 99,
         discount: 0,
         SKU: 'HFP-CUST-POSTER',
@@ -54,10 +55,10 @@ async function ensureCustomPosterProduct() {
     console.log('Created custom-poster product:', product.id);
   } else {
     console.log('Found existing custom-poster product:', product.id);
-    if (product.price !== 19) {
+    if (product.price !== 7) {
       await prisma.product.update({
         where: { id: product.id },
-        data: { price: 19 }
+        data: { price: 7 }
       });
     }
   }
@@ -102,5 +103,4 @@ ensureCustomPosterProduct()
   .catch(console.error)
   .finally(async () => {
     await prisma.$disconnect();
-    await pool.end();
   });
