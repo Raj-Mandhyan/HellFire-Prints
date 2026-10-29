@@ -1,11 +1,16 @@
 'use client';
 
 import React, { useEffect, useRef } from 'react';
+import { usePathname } from 'next/navigation';
 
 export default function CursorTrail() {
+  const pathname = usePathname();
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
+    // Disable on custom-poster page where CyberCursorTrail is active
+    if (pathname === '/custom-poster') return;
+
     // 1. Respect prefers-reduced-motion
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (prefersReducedMotion) return;
@@ -119,7 +124,11 @@ export default function CursorTrail() {
       window.removeEventListener('mousemove', handleMouseMove);
       cancelAnimationFrame(animationFrameId);
     };
-  }, []);
+  }, [pathname]);
+
+  if (pathname === '/custom-poster') {
+    return null;
+  }
 
   return (
     <canvas
