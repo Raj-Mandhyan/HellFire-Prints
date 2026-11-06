@@ -14,6 +14,11 @@ type ProductWithRelations = Prisma.ProductGetPayload<{
     category: true;
     inventory: true;
     images: true;
+    variants: {
+      include: {
+        size: true;
+      };
+    };
     reviews: {
       select: {
         rating: true;
@@ -51,6 +56,11 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           category: true,
           inventory: true,
           images: true,
+          variants: {
+            include: {
+              size: true,
+            },
+          },
           reviews: {
             select: {
               rating: true,

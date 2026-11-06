@@ -6,6 +6,7 @@ import { OrderStatus, ShipmentStatus } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { validateImageUrl } from '@/lib/image-validation';
+import { sendOrderAdminNotification } from '@/lib/email';
 
 // Helper to validate and normalize slug
 async function generateUniqueSlug(title: string, currentProductId?: string): Promise<string> {
@@ -310,7 +311,17 @@ export async function updateProductAction(prevState: unknown, formData: FormData
       A3: priceA3,
     };
 
-    const price = priceRaw ? parseFloat(priceRaw) : priceA4;
+    const existingProduct = await prisma.product.findUnique({
+      where: { id },
+      select: { price: true },
+    });
+    const parsedPriceInput = priceRaw ? parseFloat(priceRaw) : priceA4;
+    // If the administrator updated price_A4 and left the base `price` field unchanged from its previous value,
+    // synchronize `product.price` with `priceA4` so the A4 regular price and Product.price stay consistent.
+    const price =
+      existingProduct && parsedPriceInput === existingProduct.price && priceA4 !== existingProduct.price
+        ? priceA4
+        : parsedPriceInput;
     const MRP = MRPRaw ? parseFloat(MRPRaw) : price;
     const discount = discountRaw ? parseFloat(discountRaw) : 0;
     const stock = parseInt(stockRaw, 10);
@@ -586,12 +597,110 @@ export async function updateOrderStatusAction(orderId: string, orderStatus: Orde
       }
     });
 
-    revalidatePath('/admin/orders');
-    revalidatePath(`/admin/orders/${orderId}`);
+    try {
+      revalidatePath('/admin');
+      revalidatePath('/admin/orders');
+      revalidatePath(`/admin/orders/${orderId}`);
+      revalidatePath(`/account/orders/${orderId}`);
+    } catch {
+      // Safe fallback when invoked outside Next.js request context
+    }
     return { success: true, message: 'Order status updated successfully.' };
   } catch (error: unknown) {
     console.error('Update order status error:', error);
     const message = error instanceof Error ? error.message : String(error);
     return { error: message || 'Failed to update order status.' };
+  }
+}
+
+/**
+ * Server Action: Mark Cash on Delivery (COD) Payment as Collected (Admin Only)
+ */
+export async function markCodPaymentCollectedAction(orderId: string) {
+  try {
+    await requireAdmin();
+
+    if (!orderId) {
+      return { error: 'Order ID is required.' };
+    }
+
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: { payment: true },
+    });
+
+    if (!order) {
+      return { error: 'Order not found.' };
+    }
+
+    if (order.paymentMethod !== 'COD') {
+      return { error: 'Only Cash on Delivery (COD) orders can be manually marked as collected.' };
+    }
+
+    if (order.orderStatus === 'CANCELLED') {
+      return { error: 'Cannot mark payment as collected for a cancelled order.' };
+    }
+
+    if (order.paymentStatus === 'CAPTURED') {
+      return {
+        success: true,
+        alreadyCollected: true,
+        message: 'COD payment has already been marked as collected.',
+      };
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.order.update({
+        where: { id: orderId },
+        data: {
+          paymentStatus: 'CAPTURED',
+          ...(order.orderStatus === 'PENDING' ? { orderStatus: 'CONFIRMED' } : {}),
+        },
+      });
+
+      await tx.payment.upsert({
+        where: { orderId },
+        update: {
+          paymentMethod: 'COD',
+          paymentStatus: 'CAPTURED',
+          amount: order.total,
+        },
+        create: {
+          orderId,
+          paymentMethod: 'COD',
+          paymentStatus: 'CAPTURED',
+          amount: order.total,
+          currency: 'INR',
+          razorpayOrderId: null,
+          razorpayPaymentId: null,
+          razorpaySignature: null,
+        },
+      });
+    });
+
+    // Non-blocking admin email notification dispatch once payment is captured
+    try {
+      await sendOrderAdminNotification(orderId);
+    } catch (emailErr) {
+      console.error(`[Admin Email] Non-blocking notification error for COD order ${orderId}:`, emailErr);
+    }
+
+    try {
+      revalidatePath('/admin');
+      revalidatePath('/admin/orders');
+      revalidatePath(`/admin/orders/${orderId}`);
+      revalidatePath(`/account/orders/${orderId}`);
+    } catch {
+      // Safe fallback when invoked outside Next.js request context
+    }
+
+    return {
+      success: true,
+      message: 'Cash on Delivery payment marked as collected successfully.',
+    };
+  } catch (error: unknown) {
+    console.error('Mark COD payment collected error:', error);
+    const message = error instanceof Error ? error.message : String(error);
+    return { error: message || 'Failed to update COD payment status.' };
   }
 }

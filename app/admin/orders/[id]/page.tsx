@@ -2,9 +2,10 @@
 import prisma from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
 import OrderStatusUpdater from '@/components/OrderStatusUpdater';
+import CodPaymentUpdater from '@/components/CodPaymentUpdater';
 import Link from 'next/link';
 import Image from '@/components/SafeImage';
-import { ArrowLeft, User, Phone, MapPin, CreditCard, Box } from 'lucide-react';
+import { ArrowLeft, User, Phone, MapPin, CreditCard, Banknote, Box } from 'lucide-react';
 import { notFound } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
@@ -72,6 +73,8 @@ export default async function AdminOrderDetailPage({ params }: OrderDetailPagePr
     }) as unknown as ShippingAddressSnapshot;
   }
 
+  const isCod = order.paymentMethod === 'COD';
+
   return (
     <div className="space-y-8">
       {/* Title / Back */}
@@ -92,14 +95,25 @@ export default async function AdminOrderDetailPage({ params }: OrderDetailPagePr
               Registered in local databases on {new Date(order.createdAt).toLocaleString('en-IN', { dateStyle: 'long', timeStyle: 'short' })}
             </p>
           </div>
-          <div>
+          <div className="flex items-center gap-2.5 flex-wrap">
             <span
-              className={`inline-block px-3 py-1 text-xs font-black uppercase rounded-lg border ${order.orderStatus === 'DELIVERED'
+              className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs font-black uppercase rounded-lg border ${
+                isCod
+                  ? 'bg-amber-950/40 border-amber-800/60 text-amber-300'
+                  : 'bg-blue-950/40 border-blue-900/60 text-blue-300'
+              }`}
+            >
+              {isCod ? <Banknote className="w-3.5 h-3.5" /> : <CreditCard className="w-3.5 h-3.5" />}
+              Method: {isCod ? 'Cash on Delivery (COD)' : 'Razorpay Online'}
+            </span>
+            <span
+              className={`inline-block px-3 py-1 text-xs font-black uppercase rounded-lg border ${
+                order.orderStatus === 'DELIVERED'
                   ? 'bg-emerald-950/40 border-emerald-900 text-emerald-400'
                   : order.orderStatus === 'CANCELLED'
-                    ? 'bg-neutral-900 border-neutral-850 text-neutral-400'
-                    : 'bg-amber-950/40 border-amber-900 text-amber-400'
-                }`}
+                  ? 'bg-neutral-900 border-neutral-850 text-neutral-400'
+                  : 'bg-amber-950/40 border-amber-900 text-amber-400'
+              }`}
             >
               Order Status: {order.orderStatus}
             </span>
@@ -114,7 +128,7 @@ export default async function AdminOrderDetailPage({ params }: OrderDetailPagePr
           <div className="bg-[#161616] border border-neutral-900 p-6 sm:p-8 rounded-3xl space-y-6">
             <h3 className="text-sm font-extrabold uppercase tracking-widest text-neutral-200 border-b border-neutral-900 pb-3 flex items-center gap-2">
               <Box className="w-4 h-4 text-[#C1121F]" />
-              Ordered Itemsized List
+              Ordered Itemized List
             </h3>
 
             <div className="divide-y divide-neutral-900/60 space-y-4">
@@ -137,7 +151,7 @@ export default async function AdminOrderDetailPage({ params }: OrderDetailPagePr
                         .map((obj: any) => obj.src);
                     }
                   } catch (e) {
-                    console.error("Error parsing design config:", e);
+                    console.error('Error parsing design config:', e);
                   }
                 }
 
@@ -186,6 +200,17 @@ export default async function AdminOrderDetailPage({ params }: OrderDetailPagePr
                                 </a>
                               ))}
                             </div>
+                          ) : item.customPoster?.imageUrl ? (
+                            <div className="space-y-1">
+                              <a
+                                href={item.customPoster.imageUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex text-[9px] text-emerald-400 hover:text-white underline font-mono tracking-wider break-all bg-emerald-950/20 border border-emerald-900/30 px-1.5 py-0.5 rounded"
+                              >
+                                View Custom Poster Image
+                              </a>
+                            </div>
                           ) : (
                             <p className="text-[9.5px] text-neutral-500 italic">No custom uploaded image layers (text-only design).</p>
                           )}
@@ -209,7 +234,7 @@ export default async function AdminOrderDetailPage({ params }: OrderDetailPagePr
               </div>
               {order.discount > 0 && (
                 <div className="flex justify-between text-[#FF4D4D]">
-                  <span>Coupon Discount ({order.couponCode || 'PROMO'})</span>
+                  <span>Discount ({order.couponCode || 'PROMO'})</span>
                   <span>- {formatCurrency(order.discount)}</span>
                 </div>
               )}
@@ -228,53 +253,125 @@ export default async function AdminOrderDetailPage({ params }: OrderDetailPagePr
             </div>
           </div>
 
-          {/* Razorpay payments panel */}
+          {/* Payment & Transaction Records Panel (Supports both COD and Razorpay) */}
           <div className="bg-[#161616] border border-neutral-900 p-6 sm:p-8 rounded-3xl space-y-6">
             <h3 className="text-sm font-extrabold uppercase tracking-widest text-neutral-200 border-b border-neutral-900 pb-3 flex items-center gap-2">
-              <CreditCard className="w-4 h-4 text-[#C1121F]" />
-              Razorpay Transaction Records
+              {isCod ? (
+                <>
+                  <Banknote className="w-4 h-4 text-[#C1121F]" />
+                  Cash on Delivery (COD) Payment Records
+                </>
+              ) : (
+                <>
+                  <CreditCard className="w-4 h-4 text-[#C1121F]" />
+                  Razorpay Transaction Records
+                </>
+              )}
             </h3>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-xs leading-relaxed">
-              <div className="space-y-3 font-mono">
-                <div>
-                  <p className="text-[9px] text-neutral-500 uppercase font-bold">Rzp Order ID</p>
-                  <p className="text-white mt-0.5">{order.razorpayOrderId || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="text-[9px] text-neutral-500 uppercase font-bold">Rzp Payment ID</p>
-                  <p className="text-white mt-0.5">{order.payment?.razorpayPaymentId || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="text-[9px] text-neutral-500 uppercase font-bold">Rzp Signature</p>
-                  <p className="text-neutral-500 truncate mt-0.5 text-[10px]" title={order.payment?.razorpaySignature || 'N/A'}>
-                    {order.payment?.razorpaySignature || 'N/A'}
-                  </p>
-                </div>
-              </div>
+            {isCod ? (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-xs leading-relaxed">
+                  <div className="space-y-3 font-mono">
+                    <div>
+                      <p className="text-[9px] text-neutral-500 uppercase font-bold">Payment Method</p>
+                      <p className="text-amber-300 font-bold mt-0.5">CASH ON DELIVERY (COD)</p>
+                    </div>
+                    <div>
+                      <p className="text-[9px] text-neutral-500 uppercase font-bold">Order Reference ID</p>
+                      <p className="text-white mt-0.5">{order.id}</p>
+                    </div>
+                    <div>
+                      <p className="text-[9px] text-neutral-500 uppercase font-bold">Razorpay Gateway Order</p>
+                      <p className="text-neutral-500 mt-0.5">None (COD Bypassed Gateway)</p>
+                    </div>
+                  </div>
 
-              <div className="space-y-3">
-                <div>
-                  <p className="text-[9px] text-neutral-500 uppercase font-bold">Gateway settled funds</p>
-                  <p className="text-white font-mono font-bold mt-0.5">
-                    {order.payment ? formatCurrency(order.payment.amount) : 'N/A'} {order.payment?.currency || 'INR'}
-                  </p>
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-[9px] text-neutral-500 uppercase font-bold">
+                        {order.paymentStatus === 'CAPTURED' ? 'Amount Collected on Delivery' : 'Amount Payable on Delivery'}
+                      </p>
+                      <p className="text-white font-mono font-bold mt-0.5">
+                        {formatCurrency(order.total)} {order.payment?.currency || 'INR'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[9px] text-neutral-500 uppercase font-bold">COD Payment Status</p>
+                      <span
+                        className={`inline-block px-2.5 py-0.5 text-[9px] font-extrabold uppercase rounded-lg border mt-1.5 ${
+                          order.paymentStatus === 'CAPTURED'
+                            ? 'bg-emerald-950/40 border-emerald-900 text-emerald-400'
+                            : order.paymentStatus === 'FAILED'
+                            ? 'bg-rose-950/40 border-rose-900 text-rose-400'
+                            : 'bg-amber-950/40 border-amber-900 text-amber-400'
+                        }`}
+                      >
+                        {order.paymentStatus === 'CAPTURED'
+                          ? 'COLLECTED (PAID)'
+                          : order.paymentStatus === 'PENDING'
+                          ? 'PENDING (UNPAID)'
+                          : order.paymentStatus}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-[9px] text-neutral-500 uppercase font-bold">Gateway payment status</p>
-                  <span
-                    className={`inline-block px-2.5 py-0.5 text-[9px] font-extrabold uppercase rounded-lg border mt-1.5 ${order.paymentStatus === 'CAPTURED'
-                        ? 'bg-emerald-950/40 border-emerald-900 text-emerald-400'
-                        : order.paymentStatus === 'FAILED'
+
+                {/* Admin COD Payment Collection Control */}
+                <CodPaymentUpdater
+                  orderId={order.id}
+                  paymentStatus={order.paymentStatus}
+                  orderStatus={order.orderStatus}
+                  amount={order.total}
+                />
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-xs leading-relaxed">
+                <div className="space-y-3 font-mono">
+                  <div>
+                    <p className="text-[9px] text-neutral-500 uppercase font-bold">Payment Method</p>
+                    <p className="text-blue-300 font-bold mt-0.5">RAZORPAY (ONLINE)</p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] text-neutral-500 uppercase font-bold">Rzp Order ID</p>
+                    <p className="text-white mt-0.5">{order.razorpayOrderId || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] text-neutral-500 uppercase font-bold">Rzp Payment ID</p>
+                    <p className="text-white mt-0.5">{order.payment?.razorpayPaymentId || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] text-neutral-500 uppercase font-bold">Rzp Signature</p>
+                    <p className="text-neutral-500 truncate mt-0.5 text-[10px]" title={order.payment?.razorpaySignature || 'N/A'}>
+                      {order.payment?.razorpaySignature || 'N/A'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-[9px] text-neutral-500 uppercase font-bold">Gateway settled funds</p>
+                    <p className="text-white font-mono font-bold mt-0.5">
+                      {order.payment ? formatCurrency(order.payment.amount) : 'N/A'} {order.payment?.currency || 'INR'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] text-neutral-500 uppercase font-bold">Gateway payment status</p>
+                    <span
+                      className={`inline-block px-2.5 py-0.5 text-[9px] font-extrabold uppercase rounded-lg border mt-1.5 ${
+                        order.paymentStatus === 'CAPTURED'
+                          ? 'bg-emerald-950/40 border-emerald-900 text-emerald-400'
+                          : order.paymentStatus === 'FAILED'
                           ? 'bg-rose-950/40 border-rose-900 text-rose-400'
                           : 'bg-amber-950/40 border-amber-900 text-amber-400'
                       }`}
-                  >
-                    {order.paymentStatus}
-                  </span>
+                    >
+                      {order.paymentStatus}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
 

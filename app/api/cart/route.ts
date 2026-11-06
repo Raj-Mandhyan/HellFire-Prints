@@ -4,13 +4,20 @@ import { randomUUID } from 'crypto';
 import { getCurrentUser } from '@/lib/auth';
 import { calculateCartTotal } from '@/lib/discounts';
 import { calculateCustomPosterPrice } from '@/lib/customPosterPricing';
-import { getVariantUnitPrice } from '@/lib/pricing';
+import {
+  getVariantPricing,
+  getSizePricing,
+  getDiwaliOfferStatus,
+  MINIMUM_ORDER_VALUE,
+} from '@/lib/pricing';
 
 export const dynamic = 'force-dynamic';
 
 // GET: Retrieve the cart (authenticated user or guest session)
 export async function GET() {
   try {
+    const now = new Date();
+    const offerStatus = getDiwaliOfferStatus(now);
     const user = await getCurrentUser();
     let cart = null;
 
@@ -68,11 +75,24 @@ export async function GET() {
     }
 
     if (!cart || !cart.items.length) {
-      return NextResponse.json({ items: [], subtotal: 0, total: 0 });
+      return NextResponse.json({
+        items: [],
+        originalSubtotal: 0,
+        diwaliDiscount: 0,
+        subtotal: 0,
+        totalSavings: 0,
+        total: 0,
+        minimumOrderValue: MINIMUM_ORDER_VALUE,
+        isMinimumOrderMet: false,
+        shortfallAmount: MINIMUM_ORDER_VALUE,
+        offerStatus,
+      });
     }
 
     const items = cart.items.map((item) => {
       let unitPrice = 0;
+      let originalUnitPrice = 0;
+      let diwaliUnitPrice = 0;
       let productName = item.product.title;
       let productSlug = item.product.slug;
       let productImage = item.product.images?.[0]?.url || '';
@@ -83,20 +103,28 @@ export async function GET() {
       let SKU = item.variant?.SKU || item.product.SKU;
 
       if (item.customPosterId && item.customPoster) {
-        unitPrice = item.customPoster.price;
+        sizeName = item.customPoster.sizeName || 'A4';
+        const customPricing = getSizePricing(sizeName, now);
+        unitPrice = customPricing.effectivePrice;
+        originalUnitPrice = customPricing.originalPrice;
+        diwaliUnitPrice = customPricing.diwaliPrice;
         productName = `Custom Poster Print`;
         productSlug = 'custom-poster';
         productImage = item.customPoster.imageUrl;
-        sizeName = item.customPoster.sizeName;
         frameName = item.customPoster.frameName;
         paperType = item.customPoster.paperType;
         stock = 9999;
         SKU = `HFP-CUST-${sizeName}-${paperType.substring(0, 3).toUpperCase()}`.replace(/\s+/g, '');
       } else {
-        unitPrice = getVariantUnitPrice(item.variant, item.product.price);
+        const variantPricing = getVariantPricing(item.variant, item.product.price, now);
+        unitPrice = variantPricing.effectivePrice;
+        originalUnitPrice = variantPricing.originalPrice;
+        diwaliUnitPrice = variantPricing.diwaliPrice;
       }
 
       const lineTotal = unitPrice * item.quantity;
+      const originalLineTotal = originalUnitPrice * item.quantity;
+      const lineSavings = Math.max(0, originalLineTotal - lineTotal);
 
       return {
         id: item.id,
@@ -112,24 +140,35 @@ export async function GET() {
         frameName,
         paperType,
         quantity: item.quantity,
+        originalUnitPrice,
+        diwaliUnitPrice,
         unitPrice,
+        originalLineTotal,
         lineTotal,
+        lineSavings,
         stock,
         SKU,
       };
     });
 
-    const breakdown = await calculateCartTotal(cart.id);
+    const breakdown = await calculateCartTotal(cart.id, now);
 
     return NextResponse.json({
       id: cart.id,
       items,
+      originalSubtotal: breakdown.originalSubtotal,
+      diwaliDiscount: breakdown.diwaliDiscount,
       subtotal: breakdown.subtotal,
       quantityDiscount: breakdown.quantityDiscount,
       couponDiscount: breakdown.couponDiscount,
       totalDiscount: breakdown.totalDiscount,
+      totalSavings: breakdown.totalSavings,
       shippingFee: breakdown.shippingFee,
       total: breakdown.total,
+      minimumOrderValue: breakdown.minimumOrderValue,
+      isMinimumOrderMet: breakdown.isMinimumOrderMet,
+      shortfallAmount: breakdown.shortfallAmount,
+      offerStatus: breakdown.offerStatus,
       appliedCoupon: breakdown.appliedCoupon,
       couponError: breakdown.couponError,
     });
@@ -142,6 +181,7 @@ export async function GET() {
 // POST: Add an item to the cart (user or guest)
 export async function POST(req: NextRequest) {
   try {
+    const now = new Date();
     const body = await req.json();
     const { productId, variantId, quantity, customPoster } = body;
 
@@ -164,8 +204,8 @@ export async function POST(req: NextRequest) {
               title: 'Custom Poster Print',
               slug: 'custom-poster',
               description: 'Create your own personalized design. Upload custom artwork and overlay text. Handcrafted to order.',
-              price: 19.0,
-              MRP: 99.0,
+              price: 29.0,
+              MRP: 49.0,
               discount: 0.0,
               SKU: 'HFP-CUST-POSTER',
               featured: false,
@@ -181,12 +221,15 @@ export async function POST(req: NextRequest) {
       }
       finalProductId = baseProduct.id;
 
-      // Secure pricing recalculation on the server
-      const calculatedPrice = calculateCustomPosterPrice({
-        sizeName: customPoster.sizeName,
-        paperType: customPoster.paperType,
-        frameName: customPoster.frameName,
-      });
+      // Secure pricing recalculation on the server against current IST offer window
+      const calculatedPrice = calculateCustomPosterPrice(
+        {
+          sizeName: customPoster.sizeName,
+          paperType: customPoster.paperType,
+          frameName: customPoster.frameName,
+        },
+        now
+      );
 
       if (body.customPosterId) {
         // If customPosterId is provided, update the existing configuration

@@ -276,6 +276,7 @@ export default async function AdminDashboardPage() {
                       <tr className="border-b border-neutral-900 text-neutral-500 uppercase font-black tracking-widest text-[9px]">
                         <th className="pb-3.5 px-2">Order ID</th>
                         <th className="pb-3.5 px-2">Customer</th>
+                        <th className="pb-3.5 px-2 text-center">Method</th>
                         <th className="pb-3.5 px-2 text-right">Amount</th>
                         <th className="pb-3.5 px-2 text-center">Status</th>
                       </tr>
@@ -291,6 +292,17 @@ export default async function AdminDashboardPage() {
                           <td className="py-3.5 px-2 text-neutral-400">
                             <p className="font-extrabold text-neutral-250 uppercase tracking-wide text-[10px]">{ord.user?.name || 'Guest'}</p>
                             <p className="text-[9px] text-neutral-550 font-mono tracking-normal lowercase">{ord.user?.email || 'N/A'}</p>
+                          </td>
+                          <td className="py-3.5 px-2 text-center">
+                            <span
+                              className={`inline-block px-2 py-0.5 text-[8px] font-black uppercase rounded-md tracking-widest ${
+                                ord.paymentMethod === 'COD'
+                                  ? 'bg-amber-950/30 border border-amber-800/50 text-amber-300'
+                                  : 'bg-blue-950/30 border border-blue-900/50 text-blue-300'
+                              }`}
+                            >
+                              {ord.paymentMethod === 'COD' ? 'COD' : 'RAZORPAY'}
+                            </span>
                           </td>
                           <td className="py-3.5 px-2 text-right font-mono font-black text-white">
                             ₹{ord.total.toFixed(0)}

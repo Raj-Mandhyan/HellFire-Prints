@@ -1,8 +1,12 @@
-export const COMPANY_UPDATES = [
-  "🔥 Trending Now: Discover our newest Cyberpunk collection",
-  "⚡ Build your own masterpiece with Hellfire Custom Poster Studio",
-  "🎨 New Art Drops: Fresh cinematic designs have landed",
-  "🔥 Fan Favourite: Explore posters loved by the Hellfire community",
-  "🎁 Exclusive Offers: Check the latest deals before they disappear",
-  "🖼️ Make it Personal: Create your own Custom Poster"
+import { MINIMUM_ORDER_VALUE, ORIGINAL_SIZE_PRICES, DIWALI_SIZE_PRICES } from './pricing';
+
+export const ANNOUNCEMENT_UPDATES = [
+  `🪔 THE GRAND DIWALI SALE 2026 • A3 ₹${DIWALI_SIZE_PRICES.A3} (SAVE ₹${ORIGINAL_SIZE_PRICES.A3 - DIWALI_SIZE_PRICES.A3}) • A4 ₹${DIWALI_SIZE_PRICES.A4} (SAVE ₹${ORIGINAL_SIZE_PRICES.A4 - DIWALI_SIZE_PRICES.A4}) • A5 ₹${DIWALI_SIZE_PRICES.A5} (SAVE ₹${ORIGINAL_SIZE_PRICES.A5 - DIWALI_SIZE_PRICES.A5}) • A6 ₹${DIWALI_SIZE_PRICES.A6} (SAVE ₹${ORIGINAL_SIZE_PRICES.A6 - DIWALI_SIZE_PRICES.A6})`,
+  `✨ MINIMUM ORDER VALUE ONLY ₹${MINIMUM_ORDER_VALUE} • FREE DELIVERY ACROSS INDIA`,
+  "🎆 VALID 6 NOV 2026 (8:00 PM IST) — 9 NOV 2026 (4:00 AM IST) • LIMITED-TIME FESTIVE OFFER",
+  "🔥 MUSEUM-GRADE 300 GSM ARCHIVAL POSTERS • RAZORPAY & CASH ON DELIVERY AVAILABLE"
+];
+
+export const TOP_NOTICE_UPDATES = [
+  `🪔 GRAND DIWALI SALE 2026: A6 ₹${DIWALI_SIZE_PRICES.A6} (~~₹${ORIGINAL_SIZE_PRICES.A6}~~) • A5 ₹${DIWALI_SIZE_PRICES.A5} (~~₹${ORIGINAL_SIZE_PRICES.A5}~~) • A4 ₹${DIWALI_SIZE_PRICES.A4} (~~₹${ORIGINAL_SIZE_PRICES.A4}~~) • A3 ₹${DIWALI_SIZE_PRICES.A3} (~~₹${ORIGINAL_SIZE_PRICES.A3}~~) — MINIMUM ORDER VALUE IS ₹${MINIMUM_ORDER_VALUE}`
 ];

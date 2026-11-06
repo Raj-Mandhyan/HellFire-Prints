@@ -4,8 +4,10 @@ import { redirect, notFound } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import Link from 'next/link';
-import { CheckCircle, Package, Calendar, Phone, ShieldCheck } from 'lucide-react';
+import { CheckCircle, Package, Calendar, Phone, ShieldCheck, CreditCard, Banknote, Hash, Sparkles } from 'lucide-react';
 import ScrollReveal from '@/components/ScrollReveal';
+import { DiyaLamp, FestiveJhalar } from '@/components/DiwaliDecorations';
+import { getSizePricing } from '@/lib/pricing';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,6 +44,7 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
           customPoster: true,
         },
       },
+      payment: true,
     },
   });
 
@@ -52,6 +55,16 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
 
   // Parse shipping snapshot safely from DB JSON field
   const addressSnapshot = order.shippingAddressSnapshot as unknown as ShippingAddressSnapshot;
+  const isCod = order.paymentMethod === 'COD';
+  const isPaid = order.paymentStatus === 'CAPTURED';
+
+  // Calculate original price comparison & Diwali savings if applicable
+  const originalItemsTotal = order.items.reduce((sum, item) => {
+    const baseOriginal = getSizePricing(item.sizeName || 'A4', new Date('2026-11-01T00:00:00+05:30')).originalPrice;
+    const refOriginal = Math.max(baseOriginal, item.price);
+    return sum + refOriginal * item.quantity;
+  }, 0);
+  const diwaliOrderSavings = Math.max(0, originalItemsTotal - order.subtotal) + (order.discount || 0);
 
   return (
     <div className="min-h-screen bg-transparent text-white flex flex-col font-sans selection:bg-[#C1121F] selection:text-white">
@@ -59,19 +72,53 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
       <Navbar />
 
       <main className="flex-1 max-w-4xl w-full mx-auto px-6 py-12 space-y-8">
-        {/* Success Banner */}
+        {/* Success Banner with Festive Diwali Lighting */}
         <ScrollReveal>
-          <div className="bg-[#161616] p-8 rounded-3xl border border-neutral-900 flex flex-col items-center text-center space-y-4 relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-[3px] bg-emerald-500"></div>
-            <div className="bg-emerald-950/40 p-3.5 rounded-2xl border border-emerald-900 text-emerald-400">
-              <CheckCircle className="w-8 h-8" />
+          <div className="bg-[#161616] p-8 rounded-3xl border border-[#FFD700]/30 flex flex-col items-center text-center space-y-4 relative overflow-hidden shadow-[0_0_45px_rgba(255,215,0,0.08)]">
+            <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-[#C1121F] via-[#FFD700] to-[#C1121F]"></div>
+            <FestiveJhalar variant="hero" className="opacity-75" />
+
+            <div className="flex items-center justify-center gap-4 pt-3">
+              <DiyaLamp size="sm" />
+              <div className="bg-emerald-950/40 p-3.5 rounded-2xl border border-emerald-900 text-emerald-400 shadow-[0_0_25px_rgba(16,185,129,0.2)]">
+                <CheckCircle className="w-8 h-8" />
+              </div>
+              <DiyaLamp size="sm" />
             </div>
-            <div className="space-y-1">
+
+            <div className="space-y-2">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FFD700]/15 border border-[#FFD700]/40 text-[#FFD700] text-[9.5px] font-black uppercase tracking-widest">
+                <Sparkles className="w-3 h-3 text-[#FFD700]" />
+                Shubh Deepavali • Grand Diwali Celebration 2026
+              </div>
               <h2 className="text-xl sm:text-2xl font-black uppercase text-white">Order Confirmed!</h2>
-              <p className="text-xs text-neutral-400 max-w-md mx-auto">
-                Your configurations have been locked in. We have initiated high-contrast production checks.
+              <p className="text-xs text-neutral-300 max-w-lg mx-auto leading-relaxed">
+                Your configurations have been locked in and high-contrast production checks have begun. May these prints light up your walls this festive season!
               </p>
             </div>
+
+            {diwaliOrderSavings > 0 && (
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-emerald-950/35 border border-emerald-800/60 text-emerald-300 text-[10px] font-black uppercase tracking-widest">
+                <Sparkles className="w-3.5 h-3.5 text-[#FFD700]" />
+                You saved ₹{diwaliOrderSavings.toFixed(0)} with HellFire Festive Pricing!
+              </div>
+            )}
+
+            {isCod && (
+              <div className="mt-2 bg-amber-950/25 border border-amber-900/60 px-5 py-3.5 rounded-2xl max-w-md w-full space-y-1">
+                <p className="text-[10px] font-black uppercase tracking-widest text-amber-400 flex items-center justify-center gap-1.5">
+                  <Banknote className="w-4 h-4 text-amber-400" />
+                  Payment Method: Cash on Delivery
+                </p>
+                <p className="text-xs font-bold text-neutral-200">
+                  {isPaid ? (
+                    <>Payment of <span className="text-emerald-400 font-black font-mono">₹{order.total.toFixed(2)}</span> has been collected upon delivery.</>
+                  ) : (
+                    <>Amount Payable Upon Delivery: <span className="text-[#FFD700] font-black font-mono">₹{order.total.toFixed(2)}</span></>
+                  )}
+                </p>
+              </div>
+            )}
           </div>
         </ScrollReveal>
 
@@ -82,12 +129,19 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
               Invoice Summary
             </h3>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-xs text-neutral-400 font-medium">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 text-xs text-neutral-400 font-medium">
               <div className="flex gap-2.5 items-start">
                 <Package className="w-4.5 h-4.5 text-[#C1121F] shrink-0" />
                 <div>
                   <p className="text-[10px] text-neutral-500 uppercase tracking-widest block font-bold">Order Number</p>
-                  <p className="text-white mt-0.5 font-bold">{order.orderNumber}</p>
+                  <p className="text-white mt-0.5 font-bold font-mono">{order.orderNumber}</p>
+                </div>
+              </div>
+              <div className="flex gap-2.5 items-start">
+                <Hash className="w-4.5 h-4.5 text-[#C1121F] shrink-0" />
+                <div>
+                  <p className="text-[10px] text-neutral-500 uppercase tracking-widest block font-bold">Unique Order ID</p>
+                  <p className="text-white mt-0.5 font-bold font-mono break-all text-[11px]">{order.id}</p>
                 </div>
               </div>
               <div className="flex gap-2.5 items-start">
@@ -102,10 +156,44 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
                 </div>
               </div>
               <div className="flex gap-2.5 items-start">
+                {isCod ? (
+                  <Banknote className="w-4.5 h-4.5 text-[#C1121F] shrink-0" />
+                ) : (
+                  <CreditCard className="w-4.5 h-4.5 text-[#C1121F] shrink-0" />
+                )}
+                <div>
+                  <p className="text-[10px] text-neutral-500 uppercase tracking-widest block font-bold">Payment Method</p>
+                  <p className="text-white mt-0.5 font-bold">
+                    {isCod ? 'Cash on Delivery' : 'Online Payment (Razorpay)'}
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2.5 items-start">
                 <ShieldCheck className="w-4.5 h-4.5 text-[#C1121F] shrink-0" />
                 <div>
-                  <p className="text-[10px] text-neutral-500 uppercase tracking-widest block font-bold">Status Badge</p>
-                  <span className="inline-block mt-1 text-[9px] font-extrabold uppercase px-2 py-0.5 rounded bg-emerald-950/40 border border-emerald-900 text-emerald-400">
+                  <p className="text-[10px] text-neutral-500 uppercase tracking-widest block font-bold">Payment Status</p>
+                  <span
+                    className={`inline-block mt-1 text-[9px] font-extrabold uppercase px-2.5 py-0.5 rounded border ${
+                      isPaid
+                        ? 'bg-emerald-950/40 border-emerald-900 text-emerald-400'
+                        : order.paymentStatus === 'FAILED'
+                        ? 'bg-rose-950/40 border-rose-900 text-rose-400'
+                        : 'bg-amber-950/40 border-amber-900 text-amber-400'
+                    }`}
+                  >
+                    {isCod
+                      ? isPaid
+                        ? 'PAID (COLLECTED)'
+                        : 'PENDING (PAY ON DELIVERY)'
+                      : order.paymentStatus}
+                  </span>
+                </div>
+              </div>
+              <div className="flex gap-2.5 items-start">
+                <ShieldCheck className="w-4.5 h-4.5 text-[#C1121F] shrink-0" />
+                <div>
+                  <p className="text-[10px] text-neutral-500 uppercase tracking-widest block font-bold">Order Status</p>
+                  <span className="inline-block mt-1 text-[9px] font-extrabold uppercase px-2.5 py-0.5 rounded bg-emerald-950/40 border border-emerald-900 text-emerald-400">
                     {order.orderStatus}
                   </span>
                 </div>
@@ -155,10 +243,28 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
 
               {/* Calculations totals */}
               <div className="space-y-3.5 text-xs border-t border-neutral-900 pt-5 font-medium">
+                {originalItemsTotal > order.subtotal && (
+                  <>
+                    <div className="flex justify-between">
+                      <span className="text-neutral-500">Original Price Subtotal</span>
+                      <span className="font-semibold text-neutral-500 line-through font-mono">₹{originalItemsTotal.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-[#FFD700]">
+                      <span>Diwali Festive Discount</span>
+                      <span className="font-bold font-mono">-₹{(originalItemsTotal - order.subtotal).toFixed(2)}</span>
+                    </div>
+                  </>
+                )}
                 <div className="flex justify-between">
                   <span className="text-neutral-500">Subtotal</span>
                   <span className="font-semibold text-white">₹{order.subtotal.toFixed(2)}</span>
                 </div>
+                {order.discount > 0 && (
+                  <div className="flex justify-between text-emerald-400">
+                    <span>Discount {order.couponCode ? `(${order.couponCode})` : ''}</span>
+                    <span className="font-semibold">-₹{order.discount.toFixed(2)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span className="text-neutral-500">Delivery Charges</span>
                   <span className="font-semibold text-white">₹{order.shippingFee.toFixed(2)}</span>
@@ -167,10 +273,27 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
                   <span className="text-neutral-500">Tax (Included)</span>
                   <span className="font-semibold text-white">₹{order.tax.toFixed(2)}</span>
                 </div>
+                <div className="flex justify-between">
+                  <span className="text-neutral-500">Payment Method</span>
+                  <span className="font-bold text-white uppercase">
+                    {isCod ? 'Cash on Delivery' : 'Razorpay Online'}
+                  </span>
+                </div>
                 <div className="flex justify-between border-t border-neutral-900 pt-4 text-sm font-black uppercase text-white">
                   <span>Grand Total</span>
                   <span className="text-[#FF4D4D]">₹{order.total.toFixed(2)}</span>
                 </div>
+
+                {isCod && (
+                  <div className="flex justify-between items-center bg-amber-950/20 border border-amber-900/50 px-4 py-3 rounded-2xl mt-2">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-amber-400">
+                      {isPaid ? 'Amount Paid on Delivery' : 'Amount Payable Upon Delivery'}
+                    </span>
+                    <span className="text-sm font-black font-mono text-white">
+                      ₹{order.total.toFixed(2)}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </ScrollReveal>

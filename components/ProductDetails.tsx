@@ -5,7 +5,7 @@ import Image from './SafeImage';
 import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
 import { Prisma } from '@prisma/client';
-import { ShieldCheck, Truck, RefreshCw, ShoppingBag, ArrowLeft, Star, ChevronLeft, ChevronRight, MessageSquare, Trash2, User, Calendar, CheckCircle, Heart, Check } from 'lucide-react';
+import { ShieldCheck, Truck, RefreshCw, ShoppingBag, ArrowLeft, Star, ChevronLeft, ChevronRight, MessageSquare, Trash2, User, Calendar, CheckCircle, Heart, Check, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import ScrollReveal from './ScrollReveal';
 import {
@@ -18,8 +18,16 @@ import {
 import {
   toggleProductLikeAction
 } from '@/app/actions/like';
-import { getVariantUnitPrice } from '@/lib/pricing';
+import {
+  getVariantUnitPrice,
+  getVariantPricing,
+  getDiwaliOfferStatus,
+  MINIMUM_ORDER_VALUE,
+  DIWALI_OFFER_START_DISPLAY,
+  DIWALI_OFFER_END_DISPLAY,
+} from '@/lib/pricing';
 import PosterSizeReference from './PosterSizeReference';
+import { DiyaLamp } from './DiwaliDecorations';
 
 type ProductWithRelations = Prisma.ProductGetPayload<{
   include: {
@@ -61,8 +69,11 @@ interface ProductDetailsProps {
 }
 
 export default function ProductDetails({ product, initialSummary, initialLikesCount, initialIsLiked }: ProductDetailsProps) {
-  const { addToCart } = useCart();
+  const { addToCart, previewPhase, liveOfferStatus } = useCart();
   const router = useRouter();
+
+  const effectivePhase = previewPhase ?? liveOfferStatus.phase;
+  const isExpired = effectivePhase === 'EXPIRED';
 
   // Gallery active index state
   const [activeImageIndex, setActiveImageIndex] = useState(0);
@@ -153,8 +164,6 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
     });
   }, [checkEligibility]);
 
-
-
   // Handle Review Submission
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -176,13 +185,11 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
         setReviewSuccess(eligibility?.existingReview ? 'Your review was updated successfully! 🎉' : 'Your review was posted successfully! 🎉');
         setShowReviewForm(false);
 
-        // Refresh aggregate summary
         const summaryRes = await getProductRatingSummaryAction(product.id);
         if (summaryRes.success && summaryRes.summary) {
           setSummary(summaryRes.summary);
         }
 
-        // Refresh reviews list and eligibility check
         setPage(1);
         loadReviews(1, sortBy, verifiedOnly, false);
         checkEligibility();
@@ -208,13 +215,11 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
         setReviewTitle('');
         setComment('');
 
-        // Refresh aggregate summary
         const summaryRes = await getProductRatingSummaryAction(product.id);
         if (summaryRes.success && summaryRes.summary) {
           setSummary(summaryRes.summary);
         }
 
-        // Refresh reviews list and eligibility check
         setPage(1);
         loadReviews(1, sortBy, verifiedOnly, false);
         checkEligibility();
@@ -245,17 +250,36 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
 
   // Extract ONLY the allowed sizes (A3, A4, A5, A6) from variants, ordered strictly: A3, A4, A5, A6
   const sizes = useMemo(() => {
-    const map = new Map<string, { id: string; name: string; dimensions: string; price: number }>();
+    const map = new Map<
+      string,
+      {
+        id: string;
+        name: string;
+        dimensions: string;
+        originalPrice: number;
+        diwaliPrice: number;
+        savings: number;
+        discountPercentage: number;
+      }
+    >();
     product.variants.forEach((v) => {
       if (v.size && ALLOWED_SIZES.includes(v.size.name)) {
-        const variantPrice = getVariantUnitPrice(v, product.price);
+        const sizePricing = getVariantPricing(
+          v,
+          product.price,
+          new Date(),
+          isExpired ? 'EXPIRED' : 'ACTIVE'
+        );
         const existing = map.get(v.size.id);
-        if (!existing || (!v.frameId && variantPrice < existing.price)) {
+        if (!existing || !v.frameId) {
           map.set(v.size.id, {
             id: v.size.id,
             name: v.size.name,
             dimensions: SIZE_DISPLAY_DIMENSIONS[v.size.name] || v.size.dimensions,
-            price: variantPrice,
+            originalPrice: sizePricing.originalPrice,
+            diwaliPrice: sizePricing.diwaliPrice,
+            savings: sizePricing.savings,
+            discountPercentage: sizePricing.discountPercentage,
           });
         }
       }
@@ -263,7 +287,7 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
     return Array.from(map.values()).sort(
       (a, b) => ALLOWED_SIZES.indexOf(a.name) - ALLOWED_SIZES.indexOf(b.name)
     );
-  }, [product.variants, product.price, ALLOWED_SIZES, SIZE_DISPLAY_DIMENSIONS]);
+  }, [product.variants, product.price, isExpired, ALLOWED_SIZES, SIZE_DISPLAY_DIMENSIONS]);
 
   // Default size: prioritize A4, fallback to first available size
   const defaultSizeId = useMemo(() => {
@@ -293,7 +317,6 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
     if (matching.length === 0) return undefined;
     if (matching.length === 1) return matching[0];
 
-    // For legacy products with multiple variants per size, pick the base unframed variant
     return (
       matching.find(
         (v) =>
@@ -305,24 +328,15 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
     );
   }, [product.variants, product.price, selectedSizeId]);
 
-  // Recalculate dynamic prices based on selected variant
-  const prices = useMemo(() => {
-    const unitPrice = getVariantUnitPrice(selectedVariant, product.price);
-    let finalMRP = product.MRP;
-    if (product.discount > 0 && product.price > 0) {
-      finalMRP = Math.round(unitPrice / (1 - product.discount / 100));
-    } else if (product.MRP > product.price) {
-      finalMRP = unitPrice + (product.MRP - product.price);
-    } else {
-      finalMRP = unitPrice;
-    }
-
-    return {
-      price: unitPrice,
-      MRP: finalMRP,
-      discount: product.discount,
-    };
-  }, [product.price, product.MRP, product.discount, selectedVariant]);
+  // Resolved size pricing for currently selected size
+  const activeSizePricing = useMemo(() => {
+    return getVariantPricing(
+      selectedVariant,
+      product.price,
+      new Date(),
+      isExpired ? 'EXPIRED' : 'ACTIVE'
+    );
+  }, [selectedVariant, product.price, isExpired]);
 
   // Trigger add to cart
   const handleAddToCart = async () => {
@@ -408,7 +422,6 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
 
     if (isLikeMutating) return;
 
-    // Optimistic UI updates
     const nextIsLiked = !isLiked;
     setIsLiked(nextIsLiked);
     setLikesCount((prev) => (nextIsLiked ? prev + 1 : Math.max(0, prev - 1)));
@@ -422,11 +435,9 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
       setIsLikeMutating(true);
       const res = await toggleProductLikeAction(product.id);
       if (res.success && res.totalLikes !== undefined && res.isLiked !== undefined) {
-        // Sync actual state from server action response
         setIsLiked(res.isLiked);
         setLikesCount(res.totalLikes);
       } else {
-        // Rollback optimistic update on failure
         setIsLiked(!nextIsLiked);
         setLikesCount((prev) => (nextIsLiked ? Math.max(0, prev - 1) : prev + 1));
         if (res.error === 'unauthenticated') {
@@ -437,7 +448,6 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
       }
     } catch (err) {
       console.error('Like toggle failed:', err);
-      // Rollback optimistic update on error
       setIsLiked(!nextIsLiked);
       setLikesCount((prev) => (nextIsLiked ? Math.max(0, prev - 1) : prev + 1));
       alert('An unexpected error occurred.');
@@ -460,7 +470,7 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
   return (
     <div className="space-y-10">
       {/* Breadcrumbs / Back button */}
-      <div className="flex items-center justify-between border-b border-neutral-900 pb-5">
+      <div className="flex items-center justify-between border-b border-amber-500/20 pb-5">
         <Link
           href="/"
           className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-neutral-400 hover:text-white transition-colors group"
@@ -468,7 +478,7 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
           <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform duration-350" />
           Back to storefront
         </Link>
-        <span className="text-[10px] font-mono uppercase bg-neutral-950 border border-neutral-900 text-neutral-400 px-3.5 py-1.5 rounded-full tracking-widest shadow-sm">
+        <span className="text-[10px] font-mono uppercase bg-neutral-950 border border-amber-500/25 text-amber-300 px-3.5 py-1.5 rounded-full tracking-widest shadow-sm">
           SKU: {selectedVariant?.SKU || product.SKU}
         </span>
       </div>
@@ -476,7 +486,7 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
         {/* Left Side: Product Gallery */}
         <div className="lg:col-span-7 space-y-6">
-          <div className="relative aspect-[3/4] w-full bg-neutral-950 border border-neutral-900 rounded-3xl overflow-hidden shadow-2xl shadow-black/90">
+          <div className="relative aspect-[3/4] w-full bg-neutral-950 border border-amber-500/25 rounded-3xl overflow-hidden shadow-2xl shadow-black/90">
             {images.map((img, idx) => (
               <div
                 key={img.id || idx}
@@ -496,7 +506,7 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
             ))}
 
             {/* Top Glowing atmospheric bar */}
-            <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-transparent via-[#C1121F] to-transparent z-20"></div>
+            <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-transparent via-[#FFD700] to-transparent z-20"></div>
 
             {/* Previous/Next Manual Controls */}
             {images.length > 1 && (
@@ -525,7 +535,7 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
                   <button
                     key={idx}
                     onClick={() => setActiveImageIndex(idx)}
-                    className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${activeImageIndex === idx ? 'bg-[#C1121F] scale-125 w-3.5' : 'bg-white/40 hover:bg-white/80'
+                    className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${activeImageIndex === idx ? 'bg-[#FFD700] scale-125 w-3.5' : 'bg-white/40 hover:bg-white/80'
                       }`}
                     aria-label={`View image ${idx + 1}`}
                   />
@@ -546,11 +556,11 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
                     onClick={() => setActiveImageIndex(idx)}
                     className="flex flex-col items-center gap-2 cursor-pointer group flex-shrink-0"
                   >
-                    <div className={`relative w-20 h-24 rounded-2xl border-2 overflow-hidden bg-neutral-950 transition-all duration-300 ${activeImageIndex === idx ? 'border-[#C1121F] shadow-lg shadow-red-950/20' : 'border-neutral-900 group-hover:border-neutral-700'
+                    <div className={`relative w-20 h-24 rounded-2xl border-2 overflow-hidden bg-neutral-950 transition-all duration-300 ${activeImageIndex === idx ? 'border-[#FFD700] shadow-lg shadow-amber-950/20' : 'border-neutral-900 group-hover:border-neutral-700'
                       }`}>
                       <Image src={img.url} alt={label} fill sizes="80px" className="object-cover" />
                     </div>
-                    <span className={`text-[9px] uppercase font-black tracking-widest transition-colors duration-300 ${activeImageIndex === idx ? 'text-[#FF4D4D]' : 'text-neutral-500 group-hover:text-neutral-350'
+                    <span className={`text-[9px] uppercase font-black tracking-widest transition-colors duration-300 ${activeImageIndex === idx ? 'text-[#FFD700]' : 'text-neutral-500 group-hover:text-neutral-350'
                       }`}>
                       {label}
                     </span>
@@ -562,14 +572,22 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
         </div>
 
         {/* Right Side: Product Customizer & Details */}
-        <div className="lg:col-span-5 space-y-8 bg-[#0F0F0F] p-6 sm:p-8 rounded-3xl border border-neutral-900/60 shadow-xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 rounded-full bg-[#C1121F]/5 blur-3xl pointer-events-none" />
+        <div className="lg:col-span-5 space-y-7 bg-[#0F0A0C] p-6 sm:p-8 rounded-3xl border border-amber-500/25 shadow-xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-36 h-36 rounded-full bg-[#FFD700]/10 blur-3xl pointer-events-none" />
 
           {/* Header Info */}
-          <div className="space-y-3.5">
-            <span className="text-xs text-[#C1121F] font-black uppercase tracking-widest block">
-              {product.category?.name || 'Catalog'}
-            </span>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-[#FFD700] font-black uppercase tracking-widest block">
+                {product.category?.name || 'Catalog'}
+              </span>
+              {!isExpired && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-gradient-to-r from-[#C1121F] via-[#FF7B00] to-[#FFD700] text-black text-[9px] font-black uppercase tracking-widest shadow">
+                  <Sparkles className="w-2.5 h-2.5" />
+                  DIWALI SPECIAL OFFER
+                </span>
+              )}
+            </div>
             <h1 className="text-3xl sm:text-4xl font-black uppercase text-white tracking-tight leading-none">
               {product.title}
             </h1>
@@ -588,7 +606,7 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
                   );
                 })}
               </div>
-              <span className="text-xs text-neutral-450 font-bold uppercase tracking-wider text-[10px]">
+              <span className="text-neutral-400 font-bold uppercase tracking-wider text-[10px]">
                 {summary.totalReviews > 0 ? (
                   `${summary.averageRating.toFixed(1)} rating | ${summary.totalReviews} review${summary.totalReviews > 1 ? 's' : ''}`
                 ) : (
@@ -598,26 +616,46 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
             </div>
           </div>
 
-          {/* Pricing Block */}
-          <div className="flex items-baseline gap-3.5 bg-neutral-950 p-4.5 border border-neutral-900 rounded-2xl shadow-inner">
-            <span className="text-3xl font-black text-white">
-              ₹{prices.price.toFixed(2)}
-            </span>
-            {prices.discount > 0 && (
-              <>
-                <span className="text-sm text-neutral-500 line-through">
-                  ₹{prices.MRP.toFixed(2)}
+          {/* Festive Pricing Block */}
+          <div className="bg-gradient-to-b from-[#17090D] to-[#0B0406] p-5 border border-[#FFD700]/35 rounded-2xl shadow-inner space-y-3 relative overflow-hidden">
+            {!isExpired ? (
+              <div className="flex items-center justify-between gap-3 animate-price-pop">
+                <div className="space-y-1.5">
+                  <div className="flex items-baseline gap-3 flex-wrap">
+                    <span className="text-base sm:text-lg font-mono font-bold text-neutral-400 line-through decoration-[#FF4D4D] decoration-2">
+                      ₹{activeSizePricing.originalPrice}
+                    </span>
+                    <span className="text-sm font-bold text-amber-400">→</span>
+                    <span className="text-3xl sm:text-4xl font-mono font-black text-[#FFD700] drop-shadow-[0_0_12px_rgba(255,215,0,0.4)]">
+                      ₹{activeSizePricing.diwaliPrice}
+                    </span>
+                    <span className="bg-emerald-950/70 border border-emerald-500/40 text-emerald-300 text-[10px] font-black uppercase px-2.5 py-1 rounded-lg tracking-widest">
+                      SAVE ₹{activeSizePricing.savings} ({activeSizePricing.discountPercentage}% OFF)
+                    </span>
+                  </div>
+                  <p className="text-[10px] font-mono font-semibold text-amber-200/85">
+                    🪔 Valid ONLY during Diwali Offer ({DIWALI_OFFER_START_DISPLAY} – {DIWALI_OFFER_END_DISPLAY})
+                  </p>
+                </div>
+                <div className="hidden sm:block shrink-0">
+                  <DiyaLamp size="sm" delayMs={100} />
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-baseline gap-3.5">
+                <span className="text-3xl font-mono font-black text-white">
+                  ₹{activeSizePricing.originalPrice.toFixed(2)}
                 </span>
-                <span className="bg-gradient-to-r from-[#C1121F] to-[#FF4D4D] text-white text-[9px] font-black uppercase px-2.5 py-1 rounded-lg tracking-widest shadow">
-                  {prices.discount}% OFF
+                <span className="text-[10px] font-mono text-neutral-500 uppercase">
+                  Standard Price ({activeSizePricing.sizeName})
                 </span>
-              </>
+              </div>
             )}
           </div>
 
           {/* Description */}
           <ScrollReveal fiery={false}>
-            <div className="space-y-2 text-xs sm:text-sm text-neutral-400 leading-relaxed border-b border-neutral-900 pb-6">
+            <div className="space-y-2 text-xs sm:text-sm text-neutral-400 leading-relaxed border-b border-neutral-900 pb-5">
               <h3 className="text-white text-[10px] font-black uppercase tracking-widest">Poster Blueprint</h3>
               <p className="font-medium">{product.description}</p>
             </div>
@@ -627,27 +665,54 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
           <div>
             {/* 1. Size Selection */}
             <div className="space-y-3">
-              <label className="text-[10px] text-neutral-450 font-black uppercase tracking-widest block">
-                Select Dimensions
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] text-neutral-300 font-black uppercase tracking-widest block">
+                  Select Poster Size &amp; Festive Offer
+                </label>
+                <span className="text-[9px] font-mono text-amber-300 font-bold uppercase">
+                  Min. Order: ₹{MINIMUM_ORDER_VALUE}
+                </span>
+              </div>
               <div className="grid grid-cols-2 gap-3">
-                {sizes.map((size) => (
-                  <button
-                    key={size.id}
-                    onClick={() => setSelectedSizeId(size.id)}
-                    className={`px-4.5 py-3 rounded-2xl border text-left cursor-pointer transition-all duration-300 active:scale-98 ${
-                      selectedSizeId === size.id
-                        ? 'border-[#C1121F] bg-[#C1121F]/10 text-white shadow-lg shadow-red-950/20'
-                        : 'border-neutral-900 bg-neutral-950/40 text-neutral-400 hover:border-neutral-750 hover:text-white'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="text-xs font-black uppercase tracking-wider">{size.name}</div>
-                      <div className="text-xs font-mono font-black text-white">₹{size.price.toFixed(0)}</div>
-                    </div>
-                    <div className="text-[10px] text-neutral-500 font-bold mt-1">{size.dimensions}</div>
-                  </button>
-                ))}
+                {sizes.map((size) => {
+                  const isSelected = selectedSizeId === size.id;
+                  return (
+                    <button
+                      key={size.id}
+                      type="button"
+                      onClick={() => setSelectedSizeId(size.id)}
+                      className={`px-4 py-3.5 rounded-2xl border text-left cursor-pointer transition-all duration-300 active:scale-98 ${
+                        isSelected
+                          ? 'border-[#FFD700] bg-gradient-to-br from-[#FFD700]/15 to-[#C1121F]/15 text-white shadow-[0_0_20px_rgba(255,215,0,0.2)]'
+                          : 'border-neutral-800 bg-neutral-950/60 text-neutral-400 hover:border-amber-500/50 hover:text-white'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-black uppercase tracking-wider text-white">{size.name}</span>
+                        {!isExpired ? (
+                          <div className="flex items-baseline gap-1.5 font-mono">
+                            <span className="text-[11px] text-neutral-400 line-through decoration-[#FF4D4D]">
+                              ₹{size.originalPrice}
+                            </span>
+                            <span className="text-sm font-black text-[#FFD700]">
+                              ₹{size.diwaliPrice}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-xs font-mono font-black text-white">₹{size.originalPrice}</span>
+                        )}
+                      </div>
+                      <div className="flex items-center justify-between mt-1.5">
+                        <span className="text-[10px] text-neutral-400 font-bold">{size.dimensions}</span>
+                        {!isExpired && (
+                          <span className="text-[8.5px] font-black uppercase tracking-wider text-emerald-400">
+                            SAVE ₹{size.savings}
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
 
               {/* Poster Physical Size Reference */}
@@ -659,7 +724,7 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
           <div className="space-y-5 pt-6 border-t border-neutral-900">
             {/* Quantity Selector */}
             <div className="flex items-center justify-between">
-              <span className="text-[10px] text-neutral-450 font-black uppercase tracking-widest">
+              <span className="text-[10px] text-neutral-400 font-black uppercase tracking-widest">
                 Quantity
               </span>
               <div className="flex items-center bg-neutral-950 border border-neutral-900 rounded-2xl overflow-hidden shadow-inner">
@@ -705,8 +770,8 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
             {/* Feedback Notifications */}
             {feedbackMsg && (
               <div className={`p-4 rounded-2xl border text-xs font-bold uppercase tracking-wider ${feedbackMsg.type === 'success'
-                  ? 'bg-emerald-950/40 border-emerald-900 text-emerald-350'
-                  : 'bg-red-950/40 border-red-900 text-red-350'
+                  ? 'bg-emerald-950/40 border-emerald-900 text-emerald-300'
+                  : 'bg-red-950/40 border-red-900 text-red-300'
                 }`}>
                 {feedbackMsg.text}
               </div>
@@ -719,37 +784,35 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
                 disabled={isAdding || isJustAdded || !selectedVariant || selectedVariant.stock <= 0}
                 className={`flex-1 inline-flex items-center justify-center gap-2.5 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all duration-300 disabled:cursor-not-allowed cursor-pointer shadow-lg active:scale-97 ${isJustAdded
                     ? 'bg-emerald-600 text-white hover:scale-100 shadow-emerald-950/20'
-                    : 'bg-gradient-to-r from-[#C1121F] to-[#FF4D4D] text-white hover:scale-103 fiery-button-glow shadow-red-950/30'
+                    : 'bg-gradient-to-r from-[#C1121F] via-[#FF7B00] to-[#FFD700] text-black hover:scale-103 diwali-button-glow'
                   }`}
               >
                 {isJustAdded ? <Check className="w-4.5 h-4.5 animate-pulse" /> : <ShoppingBag className="w-4.5 h-4.5" />}
-                {isAdding ? 'ADDING TO CART...' : isJustAdded ? 'ADDED TO CART! 🔥' : selectedVariant && selectedVariant.stock <= 0 ? 'OUT OF STOCK' : 'ADD TO CART'}
+                {isAdding ? 'ADDING TO CART...' : isJustAdded ? 'ADDED TO CART! 🪔' : selectedVariant && selectedVariant.stock <= 0 ? 'OUT OF STOCK' : 'ADD TO CART'}
               </button>
 
               <button
                 onClick={handleBuyNow}
                 disabled={isBuying || !selectedVariant || selectedVariant.stock <= 0}
-                className="flex-1 inline-flex items-center justify-center gap-2.5 bg-neutral-950 border border-[#C1121F]/60 text-white py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all duration-300 hover:bg-[#C1121F]/10 hover:border-[#C1121F] active:scale-97 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                className="flex-1 inline-flex items-center justify-center gap-2.5 bg-neutral-950 border border-[#FFD700]/60 text-[#FFD700] py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all duration-300 hover:bg-[#FFD700]/10 hover:border-[#FFD700] active:scale-97 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 {isBuying ? 'PROCESSING...' : 'BUY NOW'}
               </button>
             </div>
-
-
           </div>
 
           {/* Trust points */}
           <div className="grid grid-cols-3 gap-3 pt-6 border-t border-neutral-900 text-[9px] text-neutral-400 text-center font-black uppercase tracking-widest">
             <div className="flex flex-col items-center gap-1.5 py-2.5 bg-neutral-950/30 rounded-xl border border-neutral-900/60">
-              <ShieldCheck className="w-5 h-5 text-[#C1121F]" />
-              Secure Pay
+              <ShieldCheck className="w-5 h-5 text-[#FFD700]" />
+              Secure Pay &amp; COD
             </div>
             <div className="flex flex-col items-center gap-1.5 py-2.5 bg-neutral-950/30 rounded-xl border border-neutral-900/60">
-              <Truck className="w-5 h-5 text-[#C1121F]" />
+              <Truck className="w-5 h-5 text-[#FFD700]" />
               Fast Ship
             </div>
             <div className="flex flex-col items-center gap-1.5 py-2.5 bg-neutral-950/30 rounded-xl border border-neutral-900/60">
-              <RefreshCw className="w-5 h-5 text-[#C1121F]" />
+              <RefreshCw className="w-5 h-5 text-[#FFD700]" />
               Easy Return
             </div>
           </div>
@@ -759,7 +822,7 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
       {/* Reviews and Ratings configurator section */}
       <section className="border-t border-neutral-900 pt-16 mt-16 max-w-4xl mx-auto space-y-12">
         <h2 className="text-lg font-black uppercase text-white tracking-widest border-b border-neutral-900 pb-4">
-          Customer Reviews & Rating Analytics ({totalCount})
+          Customer Reviews &amp; Rating Analytics ({totalCount})
         </h2>
 
         {/* Aggregate statistics */}
@@ -795,10 +858,10 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
                 const percent = summary.totalReviews > 0 ? Math.round((count / summary.totalReviews) * 100) : 0;
                 return (
                   <div key={star} className="flex items-center gap-4 text-xs font-bold uppercase tracking-wider">
-                    <span className="w-12 text-neutral-450 shrink-0 text-[10px]">{star} Star</span>
+                    <span className="w-12 text-neutral-400 shrink-0 text-[10px]">{star} Star</span>
                     <div className="flex-1 h-3 bg-neutral-950 rounded-full overflow-hidden border border-neutral-900">
                       <div
-                        className="h-full bg-gradient-to-r from-[#C1121F] to-[#FF4D4D] rounded-full transition-all duration-500"
+                        className="h-full bg-gradient-to-r from-[#C1121F] to-[#FFD700] rounded-full transition-all duration-500"
                         style={{ width: `${percent}%` }}
                       />
                     </div>
@@ -834,7 +897,7 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
                 disabled={isLikeMutating}
                 className={`w-full py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-widest border transition-all duration-300 cursor-pointer active:scale-97 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${isLiked
                     ? 'bg-[#C1121F]/15 border-[#C1121F] text-[#FF4D4D] shadow-lg shadow-red-950/20 hover:bg-[#C1121F]/25 hover:scale-103'
-                    : 'bg-neutral-950 border-neutral-900 text-neutral-450 hover:text-white hover:border-neutral-750 hover:scale-103'
+                    : 'bg-neutral-950 border-neutral-900 text-neutral-400 hover:text-white hover:border-neutral-750 hover:scale-103'
                   }`}
               >
                 <Heart className={`w-3.5 h-3.5 ${isLiked ? 'fill-[#C1121F] text-[#C1121F]' : ''}`} />
@@ -893,9 +956,8 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
                 </div>
 
                 <form onSubmit={handleSubmitReview} className="space-y-5">
-                  {/* Star selector */}
                   <div className="space-y-2">
-                    <label className="text-[10px] text-neutral-450 font-black uppercase tracking-widest block">
+                    <label className="text-[10px] text-neutral-400 font-black uppercase tracking-widest block">
                       Select Rating
                     </label>
                     <div className="flex items-center gap-1 bg-neutral-950 p-2.5 rounded-xl border border-neutral-900 inline-flex">
@@ -920,9 +982,8 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
                     </div>
                   </div>
 
-                  {/* Title Input */}
                   <div className="space-y-2">
-                    <label htmlFor="reviewTitle" className="text-[10px] text-neutral-450 font-black uppercase tracking-widest block">
+                    <label htmlFor="reviewTitle" className="text-[10px] text-neutral-400 font-black uppercase tracking-widest block">
                       Review Headline (Optional)
                     </label>
                     <input
@@ -936,9 +997,8 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
                     />
                   </div>
 
-                  {/* Comment text area */}
                   <div className="space-y-2">
-                    <label htmlFor="comment" className="text-[10px] text-neutral-450 font-black uppercase tracking-widest block">
+                    <label htmlFor="comment" className="text-[10px] text-neutral-400 font-black uppercase tracking-widest block">
                       Detailed Comments
                     </label>
                     <textarea
@@ -956,14 +1016,12 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
                     </div>
                   </div>
 
-                  {/* Status notifications */}
                   {reviewError && (
                     <div className="p-4 bg-red-950/20 border border-red-900/60 text-red-400 text-xs rounded-xl font-bold uppercase tracking-wider">
                       {reviewError}
                     </div>
                   )}
 
-                  {/* Submit and Cancel CTAs */}
                   <div className="flex flex-wrap gap-3 pt-2">
                     <button
                       type="submit"
@@ -1021,7 +1079,7 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
         {/* Filter controls and reviews sorting */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-[#0F0F0F] p-4.5 rounded-2xl border border-neutral-900">
           <div className="flex items-center gap-4 text-xs font-bold uppercase tracking-wider">
-            <span className="text-neutral-450">Sort by:</span>
+            <span className="text-neutral-400">Sort by:</span>
             <div className="flex gap-2">
               {(['recent', 'highest', 'lowest'] as const).map((mode) => (
                 <button
@@ -1030,7 +1088,7 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
                   onClick={() => setSortBy(mode)}
                   className={`px-3 py-2 rounded-xl border text-[9px] uppercase font-black tracking-widest transition-all duration-300 cursor-pointer ${sortBy === mode
                       ? 'bg-[#C1121F]/15 border-[#C1121F] text-[#FF4D4D]'
-                      : 'bg-neutral-950 border-neutral-900 text-neutral-450 hover:border-neutral-750 hover:text-white'
+                      : 'bg-neutral-950 border-neutral-900 text-neutral-400 hover:border-neutral-750 hover:text-white'
                     }`}
                 >
                   {mode === 'recent' ? 'Most Recent' : mode === 'highest' ? 'Highest' : 'Lowest'}
@@ -1039,7 +1097,7 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
             </div>
           </div>
 
-          <label className="flex items-center gap-2.5 text-[10px] font-black uppercase tracking-widest text-neutral-450 cursor-pointer select-none">
+          <label className="flex items-center gap-2.5 text-[10px] font-black uppercase tracking-widest text-neutral-400 cursor-pointer select-none">
             <input
               type="checkbox"
               checked={verifiedOnly}
@@ -1069,7 +1127,6 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
                     className="bg-[#0F0F0F] p-6 sm:p-7 rounded-3xl border border-neutral-900/80 space-y-4 relative shadow-sm"
                   >
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                      {/* User Rating and Headline */}
                       <div className="flex flex-wrap items-center gap-2.5">
                         <div className="flex gap-0.5 text-amber-500">
                           {[...Array(5)].map((_, idx) => (
@@ -1086,7 +1143,6 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
                         )}
                       </div>
 
-                      {/* Date */}
                       <span className="text-[9px] text-neutral-500 font-mono font-bold uppercase tracking-wider flex items-center gap-1.5">
                         <Calendar className="w-3.5 h-3.5 text-[#C1121F]" />
                         {new Date(review.createdAt).toLocaleDateString('en-IN', {
@@ -1095,12 +1151,10 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
                       </span>
                     </div>
 
-                    {/* Comment */}
                     <p className="text-neutral-300 text-xs sm:text-sm leading-relaxed font-semibold">
                       {review.comment}
                     </p>
 
-                    {/* Author metadata and verified indicator */}
                     <div className="flex items-center justify-between border-t border-neutral-900/80 pt-4 text-[10px] font-black">
                       <div className="flex items-center gap-2.5 text-neutral-400">
                         <div className="w-5.5 h-5.5 rounded-full bg-neutral-950 border border-neutral-900 flex items-center justify-center overflow-hidden">
@@ -1125,14 +1179,13 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
               </div>
             )}
 
-            {/* Pagination Load More */}
             {hasMore && (
               <div className="text-center pt-4">
                 <button
                   type="button"
                   onClick={handleLoadMore}
                   disabled={loadingReviews}
-                  className="bg-neutral-950 hover:bg-neutral-900 border border-neutral-900 text-neutral-450 hover:text-white text-[9px] font-black uppercase tracking-widest px-8 py-4 rounded-xl transition-all cursor-pointer hover:scale-102 active:scale-98"
+                  className="bg-neutral-950 hover:bg-neutral-900 border border-neutral-900 text-neutral-400 hover:text-white text-[9px] font-black uppercase tracking-widest px-8 py-4 rounded-xl transition-all cursor-pointer hover:scale-102 active:scale-98"
                 >
                   {loadingReviews ? 'Loading next page...' : 'Load More Reviews'}
                 </button>
@@ -1141,8 +1194,6 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
           </div>
         </ScrollReveal>
       </section>
-
-
     </div>
   );
 }

@@ -2,6 +2,8 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import OrderCelebration from '@/components/OrderCelebration';
+import { DiwaliOfferStatus, DiwaliOfferPhase } from '@/lib/pricing';
+import { useAuthoritativeDiwaliStatus } from '@/lib/useAuthoritativeTime';
 
 export interface CartItem {
   id: string;
@@ -17,20 +19,31 @@ export interface CartItem {
   frameName: string;
   paperType: string;
   quantity: number;
+  originalUnitPrice?: number;
+  diwaliUnitPrice?: number;
   unitPrice: number;
+  originalLineTotal?: number;
   lineTotal: number;
+  lineSavings?: number;
   stock: number;
   SKU: string;
 }
 
 interface Cart {
   items: CartItem[];
+  originalSubtotal?: number;
+  diwaliDiscount?: number;
   subtotal: number;
   quantityDiscount?: number;
   couponDiscount?: number;
   totalDiscount?: number;
+  totalSavings?: number;
   shippingFee?: number;
   total: number;
+  minimumOrderValue?: number;
+  isMinimumOrderMet?: boolean;
+  shortfallAmount?: number;
+  offerStatus?: DiwaliOfferStatus;
   appliedCoupon?: {
     code: string;
     discountType: string;
@@ -43,6 +56,9 @@ interface CartContextType {
   cart: Cart;
   cartCount: number;
   isLoading: boolean;
+  liveOfferStatus: DiwaliOfferStatus;
+  previewPhase: DiwaliOfferPhase | null;
+  setPreviewPhase: (phase: DiwaliOfferPhase | null) => void;
   addToCart: (
     productId: string, 
     variantId: string | null, 
@@ -54,10 +70,19 @@ interface CartContextType {
   updateQuantity: (cartItemId: string, quantity: number) => Promise<{ success: boolean; error?: string }>;
   removeFromCart: (cartItemId: string) => Promise<{ success: boolean; error?: string }>;
   refreshCart: () => Promise<void>;
-  triggerOrderConfirmed: (orderId: string) => void;
+  triggerOrderConfirmed: (orderId: string, paymentMethod?: 'RAZORPAY' | 'COD') => void;
 }
 
-const CartContext = createContext<CartContextType | undefined>(undefined);
+// Anchor CartContext on globalThis so HMR or multi-chunk client evaluation never creates duplicate context instances
+const globalForCartContext = globalThis as unknown as {
+  __hellfireCartContext?: React.Context<CartContextType | undefined>;
+};
+
+const CartContext =
+  globalForCartContext.__hellfireCartContext ??
+  createContext<CartContextType | undefined>(undefined);
+
+globalForCartContext.__hellfireCartContext = CartContext;
 
 function playTingSound() {
   try {
@@ -120,17 +145,19 @@ function playOrderConfirmedSound() {
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [cart, setCart] = useState<Cart>({ items: [], subtotal: 0, total: 0 });
   const [isLoading, setIsLoading] = useState(true);
+  const [previewPhase, setPreviewPhase] = useState<DiwaliOfferPhase | null>(null);
 
   const [activeNotification, setActiveNotification] = useState<{
     id: number;
     title: string;
+    subtitle?: string;
     type: 'cart' | 'order';
     stage: 'below' | 'middle' | 'fading';
   } | null>(null);
 
   const timeoutIdsRef = React.useRef<NodeJS.Timeout[]>([]);
 
-  const triggerNotification = useCallback((title: string, type: 'cart' | 'order' = 'cart') => {
+  const triggerNotification = useCallback((title: string, type: 'cart' | 'order' = 'cart', subtitle?: string) => {
     timeoutIdsRef.current.forEach(clearTimeout);
     timeoutIdsRef.current = [];
 
@@ -141,7 +168,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
 
     const id = Date.now();
-    setActiveNotification({ id, title, type, stage: 'below' });
+    setActiveNotification({ id, title, subtitle, type, stage: 'below' });
 
     const t1 = setTimeout(() => {
       setActiveNotification(prev => prev && prev.id === id ? { ...prev, stage: 'middle' } : prev);
@@ -158,9 +185,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     timeoutIdsRef.current = [t1, t2, t3];
   }, []);
 
-  const triggerOrderConfirmed = useCallback((orderId: string) => {
+  const triggerOrderConfirmed = useCallback((orderId: string, paymentMethod: 'RAZORPAY' | 'COD' = 'RAZORPAY') => {
     const formattedId = orderId.substring(orderId.length - 6).toUpperCase();
-    triggerNotification(`Order #${formattedId}`, 'order');
+    const subtitle = paymentMethod === 'COD'
+      ? `🪔 Happy Diwali! Cash on Delivery • Order #${formattedId} placed.`
+      : `🪔 Happy Diwali! Payment successful • Order #${formattedId} placed.`;
+    triggerNotification(`Order #${formattedId}`, 'order', subtitle);
   }, [triggerNotification]);
 
   // Fetch the current cart state from the API
@@ -178,6 +208,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(false);
     }
   }, []);
+
+  // Authoritative IST campaign status & automatic cart refresh on campaign expiration
+  const { status: liveOfferStatus } = useAuthoritativeDiwaliStatus({
+    onExpire: () => {
+      refreshCart();
+    },
+  });
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -262,12 +299,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     cart,
     cartCount,
     isLoading,
+    liveOfferStatus,
+    previewPhase,
+    setPreviewPhase,
     addToCart,
     updateQuantity,
     removeFromCart,
     refreshCart,
     triggerOrderConfirmed
-  }), [cart, cartCount, isLoading, refreshCart, addToCart, updateQuantity, removeFromCart, triggerOrderConfirmed]);
+  }), [cart, cartCount, isLoading, liveOfferStatus, previewPhase, refreshCart, addToCart, updateQuantity, removeFromCart, triggerOrderConfirmed]);
 
   return (
     <CartContext.Provider value={contextValue}>
@@ -276,7 +316,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         <div
           className={`fixed left-1/2 -translate-x-1/2 z-50 flex items-center gap-3.5 bg-[#0A0A0A] border rounded-2xl shadow-2xl transition-all duration-500 ease-out pointer-events-none ${
             activeNotification.type === 'order'
-              ? 'border-emerald-500/40 shadow-[0_0_35px_rgba(16,185,129,0.25)] px-7 py-4.5'
+              ? 'border-amber-500/50 shadow-[0_0_40px_rgba(252,191,73,0.3)] px-7 py-4.5'
               : 'border-[#C1121F]/40 shadow-[0_0_30px_rgba(193,18,31,0.25)] px-6 py-4'
           } ${
             activeNotification.stage === 'below'
@@ -289,15 +329,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         >
           {activeNotification.type === 'order' ? (
             <>
-              <div className="bg-emerald-500/15 border border-emerald-500/30 p-2.5 rounded-xl text-emerald-400 flex-shrink-0 animate-pulse">
+              <div className="bg-amber-500/15 border border-amber-500/40 p-2.5 rounded-xl text-amber-400 flex-shrink-0 animate-pulse">
                 <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
               </div>
               <div>
-                <h4 className="text-sm font-black uppercase tracking-wider text-white">Order Confirmed</h4>
-                <p className="text-[10px] text-neutral-455 font-bold uppercase tracking-widest mt-0.5 line-clamp-1">
-                  Payment successful. {activeNotification.title} has been placed.
+                <h4 className="text-sm font-black uppercase tracking-wider text-amber-300">Order Confirmed • Shubh Deepavali!</h4>
+                <p className="text-[10px] text-neutral-300 font-bold uppercase tracking-widest mt-0.5 line-clamp-1">
+                  {activeNotification.subtitle || `Payment successful. ${activeNotification.title} has been placed.`}
                 </p>
               </div>
             </>
@@ -324,8 +364,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     </CartContext.Provider>
   );
 }
-
-
 
 export function useCart() {
   const context = useContext(CartContext);

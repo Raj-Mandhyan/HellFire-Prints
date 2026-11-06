@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { ShoppingBag, ArrowLeft } from 'lucide-react';
 import CheckoutPageClient from '@/components/CheckoutPageClient';
 import { calculateCartTotal } from '@/lib/discounts';
-import { getVariantUnitPrice } from '@/lib/pricing';
+import { getSizePricing, getVariantPricing } from '@/lib/pricing';
 
 export const dynamic = 'force-dynamic';
 
@@ -74,9 +74,12 @@ export default async function CheckoutPage() {
   }
 
   // Pre-calculate server-side prices snapshot & calculate discounts breakdown
-  const breakdown = await calculateCartTotal(cart.id);
+  const now = new Date();
+  const breakdown = await calculateCartTotal(cart.id, now);
 
   const itemsSnapshot = cart.items.map((item) => {
+    let originalUnitPrice = 0;
+    let diwaliUnitPrice = 0;
     let unitPrice = 0;
     let productName = item.product.title;
     let productImage = item.product.images?.[0]?.url || '';
@@ -85,16 +88,23 @@ export default async function CheckoutPage() {
     let paperType = item.variant?.paperType || '';
 
     if (item.customPosterId && item.customPoster) {
-      unitPrice = item.customPoster.price;
-      productName = `Custom Poster Print`;
-      productImage = item.customPoster.imageUrl;
       sizeName = item.customPoster.sizeName;
       frameName = item.customPoster.frameName;
       paperType = item.customPoster.paperType;
+      const customPricing = getSizePricing(sizeName, now);
+      originalUnitPrice = customPricing.originalPrice;
+      diwaliUnitPrice = customPricing.diwaliPrice;
+      unitPrice = customPricing.effectivePrice;
+      productName = `Custom Poster Print`;
+      productImage = item.customPoster.imageUrl;
     } else {
-      unitPrice = getVariantUnitPrice(item.variant, item.product.price);
+      const variantPricing = getVariantPricing(item.variant, item.product.price, now);
+      originalUnitPrice = variantPricing.originalPrice;
+      diwaliUnitPrice = variantPricing.diwaliPrice;
+      unitPrice = variantPricing.effectivePrice;
     }
 
+    const originalLineTotal = originalUnitPrice * item.quantity;
     const lineTotal = unitPrice * item.quantity;
 
     return {
@@ -105,15 +115,22 @@ export default async function CheckoutPage() {
       frameName,
       paperType,
       quantity: item.quantity,
+      originalUnitPrice,
+      diwaliUnitPrice,
       unitPrice,
+      originalLineTotal,
       lineTotal,
     };
   });
 
   const orderCalculations = {
     items: itemsSnapshot,
+    originalSubtotal: breakdown.originalSubtotal,
+    diwaliDiscount: breakdown.diwaliDiscount,
     subtotal: breakdown.subtotal,
     discount: breakdown.totalDiscount,
+    totalSavings: breakdown.totalSavings,
+    offerPhase: breakdown.offerStatus.phase,
     shippingFee: breakdown.shippingFee,
     tax: 0,
     total: breakdown.total,

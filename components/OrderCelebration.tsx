@@ -19,12 +19,14 @@ interface Particle {
 }
 
 const FIERY_COLORS = [
-  '#C1121F', // Fire Red
-  '#FF4D4D', // Crimson
-  '#FF8C00', // Dark Orange
-  '#FCBF49', // Amber Gold
-  '#FFD700', // Bright Gold
-  '#FFE3A8', // White Heat Gold
+  '#FFD700', // Electric Gold
+  '#FFE87C', // Radiant Sparkle Gold
+  '#FF8C00', // Rich Saffron
+  '#FCBF49', // Warm Amber
+  '#C1121F', // Hellfire Crimson
+  '#FF4D4D', // Crimson Glow
+  '#A855F7', // Festive Royal Purple
+  '#38BDF8', // Cyber Blue Spark
 ];
 
 export default function OrderCelebration() {
@@ -130,28 +132,34 @@ export default function OrderCelebration() {
     };
 
     // Scheduled simulation stages
-    // 150ms: central cracker burst (centered near the Order Confirmed overlay)
+    // 150ms: central Diwali firework burst (centered near the Order Confirmed overlay)
     const t1 = setTimeout(() => {
-      createExplosion(canvas.width / 2, canvas.height * 0.45, 120);
+      createExplosion(canvas.width / 2, canvas.height * 0.42, 130);
     }, 150);
 
-    // 350ms: secondary left/right sprinkler bursts arcing inwards
+    // 350ms: secondary left/right Anar fountain sprinkler bursts arcing inwards
     const t2 = setTimeout(() => {
       // Left sprinkler shoots up and right: -40 to -65 deg
-      createSprinkler(canvas.width * 0.15, canvas.height * 0.75, [-Math.PI * 0.36, -Math.PI * 0.22], 65);
+      createSprinkler(canvas.width * 0.15, canvas.height * 0.75, [-Math.PI * 0.36, -Math.PI * 0.22], 70);
       // Right sprinkler shoots up and left: -115 to -140 deg
-      createSprinkler(canvas.width * 0.85, canvas.height * 0.75, [-Math.PI * 0.78, -Math.PI * 0.64], 65);
+      createSprinkler(canvas.width * 0.85, canvas.height * 0.75, [-Math.PI * 0.78, -Math.PI * 0.64], 70);
     }, 350);
 
-    // 600ms-900ms: drift ambient falling embers from the top viewport
+    // 550ms: twin upper golden sky cracker bursts
+    const t2b = setTimeout(() => {
+      createExplosion(canvas.width * 0.28, canvas.height * 0.28, 75);
+      createExplosion(canvas.width * 0.72, canvas.height * 0.28, 75);
+    }, 550);
+
+    // 600ms-900ms: drift ambient falling golden sparks from the top viewport
     const t3 = setTimeout(() => {
-      createDriftingEmbers(canvas.width, 35);
+      createDriftingEmbers(canvas.width, 40);
     }, 600);
     const t4 = setTimeout(() => {
-      createDriftingEmbers(canvas.width, 25);
+      createDriftingEmbers(canvas.width, 30);
     }, 950);
 
-    timeouts.push(t1, t2, t3, t4);
+    timeouts.push(t1, t2, t2b, t3, t4);
 
     // Render loop
     const render = () => {

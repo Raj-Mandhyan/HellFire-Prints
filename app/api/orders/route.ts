@@ -3,7 +3,7 @@ import prisma from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
 import { calculateCartTotal } from '@/lib/discounts';
 import { MINIMUM_ORDER_VALUE } from '@/lib/pricing';
-import { initiatePaymentAction } from '@/app/actions/order';
+import { initiatePaymentAction, placeCodOrderAction } from '@/app/actions/order';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,6 +12,30 @@ export async function POST(req: NextRequest) {
     const user = await getCurrentUser();
     if (!user) {
       return NextResponse.json({ error: 'You must be logged in to create an order.' }, { status: 401 });
+    }
+
+    let body: Record<string, unknown> = {};
+    try {
+      body = await req.json();
+    } catch {
+      // Empty or no JSON body provided
+    }
+
+    // Security: Reject any client attempt to supply or manipulate paymentStatus or orderStatus
+    if ('paymentStatus' in body || 'orderStatus' in body) {
+      return NextResponse.json(
+        { error: 'Direct manipulation of paymentStatus or orderStatus is not permitted.' },
+        { status: 400 }
+      );
+    }
+
+    // Validate paymentMethod server-side
+    const paymentMethod = body.paymentMethod !== undefined ? String(body.paymentMethod) : 'RAZORPAY';
+    if (paymentMethod !== 'RAZORPAY' && paymentMethod !== 'COD') {
+      return NextResponse.json(
+        { error: 'Invalid payment method. Allowed values are RAZORPAY or COD.' },
+        { status: 400 }
+      );
     }
 
     const cart = await prisma.cart.findUnique({
@@ -42,14 +66,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    let body: Record<string, unknown> = {};
-    try {
-      body = await req.json();
-    } catch {
-      // Empty or no JSON body provided
-    }
+    const res = paymentMethod === 'COD'
+      ? await placeCodOrderAction({ ...body, paymentMethod: 'COD' })
+      : await initiatePaymentAction({ ...body, paymentMethod: 'RAZORPAY' });
 
-    const res = await initiatePaymentAction(body);
     if (res.error) {
       return NextResponse.json({ error: res.error }, { status: 400 });
     }
@@ -59,4 +79,18 @@ export async function POST(req: NextRequest) {
     console.error('Order creation API error:', error);
     return NextResponse.json({ error: 'Failed to create order.' }, { status: 500 });
   }
+}
+
+export async function PATCH() {
+  return NextResponse.json(
+    { error: 'Forbidden: Order and payment statuses cannot be modified through this endpoint.' },
+    { status: 403 }
+  );
+}
+
+export async function PUT() {
+  return NextResponse.json(
+    { error: 'Forbidden: Order and payment statuses cannot be modified through this endpoint.' },
+    { status: 403 }
+  );
 }

@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
           where: { razorpayOrderId: rpOrderId },
         });
 
-        if (order) {
+        if (order && order.paymentMethod !== 'COD') {
           await processSuccessfulPayment(order.id, rpOrderId, rpPaymentId);
           console.log(`Webhook successfully verified and captured payment for Order: ${order.orderNumber}`);
         }
@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
           where: { razorpayOrderId: rpOrderId },
         });
 
-        if (order) {
+        if (order && order.paymentMethod !== 'COD') {
           await prisma.order.update({
             where: { id: order.id },
             data: {

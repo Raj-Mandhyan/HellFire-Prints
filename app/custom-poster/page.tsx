@@ -21,8 +21,10 @@ import {
 import Image from 'next/image';
 import { 
   POSTER_SIZES, 
-  calculateCustomPosterPrice 
+  calculateCustomPosterPrice,
+  getCustomPosterPricingDetails
 } from '@/lib/customPosterPricing';
+import { getDiwaliOfferStatus } from '@/lib/pricing';
 import PosterSizeReference from '@/components/PosterSizeReference';
 import CyberCursorTrail from '@/components/CyberCursorTrail';
 
@@ -354,14 +356,28 @@ function ConfiguratorContent() {
     loadSavedDesigns();
   }, []);
 
-  // Pricing calculations synchronized with backend
+  // Pricing calculations synchronized with backend & Diwali Offer
+  const { previewPhase } = useCart();
+  const [livePhase, setLivePhase] = useState<'UPCOMING' | 'ACTIVE' | 'EXPIRED'>('ACTIVE');
+  useEffect(() => {
+    setLivePhase(getDiwaliOfferStatus(new Date()).phase);
+  }, []);
+  const effectivePhase = previewPhase ?? livePhase;
+  const isExpired = effectivePhase === 'EXPIRED';
+
   const priceBreakdown = useMemo(() => {
-    const unitPrice = calculateCustomPosterPrice({ sizeName });
+    const details = getCustomPosterPricingDetails(sizeName, new Date(), isExpired ? 'EXPIRED' : 'ACTIVE');
+    const unitPrice = details.effectivePrice;
     return {
+      originalUnitPrice: details.originalPrice,
+      diwaliUnitPrice: details.diwaliPrice,
       unitPrice,
-      total: unitPrice * quantity
+      originalTotal: details.originalPrice * quantity,
+      total: unitPrice * quantity,
+      totalSavings: details.savings * quantity,
+      isExpired,
     };
-  }, [sizeName, quantity]);
+  }, [sizeName, quantity, isExpired]);
 
   // Load a curated starter preset image onto canvas
   const handleLoadPreset = (preset: typeof CURATED_PRESETS[0]) => {
@@ -1479,9 +1495,27 @@ function ConfiguratorContent() {
                         >
                           <div className="flex justify-between items-center mb-1">
                             <span className="text-sm font-black text-white">{size.name}</span>
-                            <span className="text-sm font-black text-[#00E5FF]">₹{size.price}</span>
+                            {!isExpired ? (
+                              <div className="flex items-baseline gap-1.5 font-mono">
+                                <span className="text-[11px] text-[#91A4C7] line-through decoration-[#FF4D4D]">
+                                  ₹{size.originalPrice}
+                                </span>
+                                <span className="text-sm font-black text-[#FFD700]">
+                                  ₹{size.diwaliPrice}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-sm font-black text-[#00E5FF]">₹{size.originalPrice}</span>
+                            )}
                           </div>
-                          <div className="text-[10px] font-mono text-[#91A4C7]">{size.dimensions}</div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-mono text-[#91A4C7]">{size.dimensions}</span>
+                            {!isExpired && (
+                              <span className="text-[8.5px] font-mono font-black text-emerald-400 uppercase">
+                                SAVE ₹{size.savings}
+                              </span>
+                            )}
+                          </div>
                           <div className="text-[9px] font-mono text-[#B9F4FF]/70 mt-1 uppercase">
                             {size.name === 'A3' ? 'Statement Wall Print' : size.name === 'A4' ? 'Standard Frame (Popular)' : size.name === 'A5' ? 'Desk Stand Art' : 'Mini Art Card'}
                           </div>
@@ -1773,9 +1807,22 @@ function ConfiguratorContent() {
                 <span className="text-white font-bold">{orientation}</span>
               </div>
               <div className="flex justify-between text-[#91A4C7]">
-                <span>Unit Price</span>
-                <span className="text-[#00E5FF] font-bold">₹{priceBreakdown.unitPrice}</span>
+                <span>Festive Unit Price</span>
+                {!priceBreakdown.isExpired ? (
+                  <span className="font-bold">
+                    <span className="text-[#91A4C7] line-through mr-2">₹{priceBreakdown.originalUnitPrice}</span>
+                    <span className="text-[#FFD700]">₹{priceBreakdown.diwaliUnitPrice}</span>
+                  </span>
+                ) : (
+                  <span className="text-[#00E5FF] font-bold">₹{priceBreakdown.originalUnitPrice}</span>
+                )}
               </div>
+              {!priceBreakdown.isExpired && (
+                <div className="flex justify-between text-emerald-400">
+                  <span>Diwali Savings</span>
+                  <span className="font-bold">-₹{priceBreakdown.totalSavings}</span>
+                </div>
+              )}
             </div>
 
             {/* Quantity Selector & Final Subtotal */}
@@ -1801,8 +1848,15 @@ function ConfiguratorContent() {
               </div>
 
               <div className="text-right">
-                <div className="text-[10px] font-mono text-[#91A4C7] uppercase">Subtotal</div>
-                <div className="text-2xl font-black text-white leading-none">₹{priceBreakdown.total}</div>
+                <div className="text-[10px] font-mono text-[#91A4C7] uppercase">Diwali Subtotal</div>
+                <div className="flex items-baseline gap-2 justify-end">
+                  {!priceBreakdown.isExpired && (
+                    <span className="text-xs font-mono text-[#91A4C7] line-through">
+                      ₹{priceBreakdown.originalTotal}
+                    </span>
+                  )}
+                  <div className="text-2xl font-black text-[#FFD700] leading-none">₹{priceBreakdown.total}</div>
+                </div>
               </div>
             </div>
 

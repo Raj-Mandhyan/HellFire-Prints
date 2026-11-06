@@ -4,10 +4,11 @@ import React, { useState } from 'react';
 import Image from './SafeImage';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
-import { initiatePaymentAction, verifyPaymentAction } from '@/app/actions/order';
-import { MapPin, User, Phone, Map, AlertCircle, ShoppingBag, Plus, Check } from 'lucide-react';
+import { initiatePaymentAction, placeCodOrderAction, verifyPaymentAction } from '@/app/actions/order';
+import { MapPin, User, Phone, Map, AlertCircle, ShoppingBag, Plus, Check, CreditCard, Banknote, ShieldCheck, Truck, Sparkles, Clock } from 'lucide-react';
 import ScrollReveal from './ScrollReveal';
-import { MINIMUM_ORDER_VALUE } from '@/lib/pricing';
+import { MINIMUM_ORDER_VALUE, DiwaliOfferPhase } from '@/lib/pricing';
+import { DiyaLamp } from './DiwaliDecorations';
 
 interface SavedAddress {
   id: string;
@@ -28,7 +29,10 @@ interface CartSummaryItem {
   frameName: string;
   paperType: string;
   quantity: number;
+  originalUnitPrice?: number;
+  diwaliUnitPrice?: number;
   unitPrice: number;
+  originalLineTotal?: number;
   lineTotal: number;
 }
 
@@ -36,8 +40,12 @@ interface CheckoutPageClientProps {
   savedAddresses: SavedAddress[];
   calculations: {
     items: CartSummaryItem[];
+    originalSubtotal?: number;
+    diwaliDiscount?: number;
     subtotal: number;
     discount?: number;
+    totalSavings?: number;
+    offerPhase?: DiwaliOfferPhase;
     shippingFee: number;
     tax: number;
     total: number;
@@ -49,8 +57,30 @@ export default function CheckoutPageClient({
   calculations,
 }: CheckoutPageClientProps) {
   const router = useRouter();
-  const { refreshCart, triggerOrderConfirmed } = useCart();
+  const { refreshCart, triggerOrderConfirmed, previewPhase } = useCart();
   const hasTriggeredRef = React.useRef(false);
+
+  const effectivePhase: DiwaliOfferPhase = previewPhase ?? calculations.offerPhase ?? 'UPCOMING';
+  const isSaleActive = effectivePhase === 'ACTIVE';
+
+  const originalSubtotal =
+    calculations.originalSubtotal ||
+    calculations.items.reduce(
+      (sum, item) => sum + (item.originalUnitPrice || item.unitPrice) * item.quantity,
+      0
+    );
+
+  const computedSubtotal = isSaleActive
+    ? calculations.items.reduce(
+        (sum, item) => sum + (item.diwaliUnitPrice || item.unitPrice) * item.quantity,
+        0
+      )
+    : originalSubtotal;
+
+  const diwaliDiscount = isSaleActive ? Math.max(0, originalSubtotal - computedSubtotal) : 0;
+  const additionalDiscount = calculations.discount || 0;
+  const displayTotal = Math.max(0, computedSubtotal - additionalDiscount + calculations.shippingFee);
+  const totalSavings = diwaliDiscount + additionalDiscount;
 
   // Address selection state
   const [selectedAddressId, setSelectedAddressId] = useState<string>(
@@ -72,14 +102,15 @@ export default function CheckoutPageClient({
   });
 
   const [additionalNote, setAdditionalNote] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<'RAZORPAY' | 'COD'>('RAZORPAY');
 
   // Action/validation feedback states
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const isMinimumOrderMet = calculations.total >= MINIMUM_ORDER_VALUE;
-  const shortfallAmount = Math.max(0, MINIMUM_ORDER_VALUE - calculations.total);
+  const isMinimumOrderMet = displayTotal >= MINIMUM_ORDER_VALUE;
+  const shortfallAmount = Math.max(0, MINIMUM_ORDER_VALUE - displayTotal);
   const formattedShortfall = shortfallAmount % 1 === 0 ? shortfallAmount.toFixed(0) : shortfallAmount.toFixed(2);
 
   // Dynamically load Razorpay standard script from official CDN
@@ -131,9 +162,37 @@ export default function CheckoutPageClient({
       setErrorMsg(null);
 
       const payload = showNewAddressForm
-        ? { newAddress, additionalNote }
-        : { selectedAddressId, additionalNote };
+        ? { newAddress, additionalNote, paymentMethod }
+        : { selectedAddressId, additionalNote, paymentMethod };
 
+      // Branch 1: Cash on Delivery (COD) flow — no Razorpay transaction generated
+      if (paymentMethod === 'COD') {
+        const codRes = await placeCodOrderAction(payload);
+
+        if (codRes && codRes.error) {
+          setErrorMsg(codRes.error);
+          setIsSubmitting(false);
+          return;
+        }
+
+        if (!codRes || !codRes.success || !codRes.orderId) {
+          setErrorMsg('Failed to place Cash on Delivery order. Please try again.');
+          setIsSubmitting(false);
+          return;
+        }
+
+        if (!hasTriggeredRef.current) {
+          hasTriggeredRef.current = true;
+          triggerOrderConfirmed(codRes.orderId, 'COD');
+        }
+        await refreshCart();
+        setTimeout(() => {
+          router.push(`/account/orders/${codRes.orderId}`);
+        }, 2200);
+        return;
+      }
+
+      // Branch 2: Pay Online (Razorpay) flow — preserved existing verification flow
       // 1. Create local order and call Razorpay orders API server-side
       const res = await initiatePaymentAction(payload);
 
@@ -191,7 +250,7 @@ export default function CheckoutPageClient({
             if (verifyRes && verifyRes.success) {
               if (!hasTriggeredRef.current) {
                 hasTriggeredRef.current = true;
-                triggerOrderConfirmed(res.orderId);
+                triggerOrderConfirmed(res.orderId, 'RAZORPAY');
               }
               await refreshCart();
               setTimeout(() => {
@@ -239,7 +298,7 @@ export default function CheckoutPageClient({
           Secure <span className="text-[#C1121F] fiery-text-glow font-black">Checkout</span>
         </h1>
         <p className="text-neutral-455 text-xs font-semibold tracking-wide mt-2">
-          Confirm your delivery address and customized poster specifications.
+          Confirm your delivery address, payment method, and customized poster specifications.
         </p>
       </div>
 
@@ -251,7 +310,7 @@ export default function CheckoutPageClient({
       )}
 
       <form onSubmit={handlePlaceOrder} className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* Left Side: Shipping Addresses */}
+        {/* Left Side: Shipping Addresses & Payment Method */}
         <div className="lg:col-span-8 space-y-6">
           <ScrollReveal fiery={false}>
             <div className="bg-[#0F0F0F] border border-neutral-900 p-6 sm:p-8 rounded-3xl space-y-6 shadow-md relative overflow-hidden">
@@ -272,10 +331,11 @@ export default function CheckoutPageClient({
                           setSelectedAddressId(addr.id);
                           setShowNewAddressForm(false);
                         }}
-                        className={`p-5 rounded-2xl border text-left cursor-pointer transition-all duration-300 flex flex-col justify-between h-40 shadow-sm active:scale-98 ${selectedAddressId === addr.id && !showNewAddressForm
+                        className={`p-5 rounded-2xl border text-left cursor-pointer transition-all duration-300 flex flex-col justify-between h-40 shadow-sm active:scale-98 ${
+                          selectedAddressId === addr.id && !showNewAddressForm
                             ? 'border-[#C1121F] bg-[#C1121F]/10 text-white shadow-lg shadow-red-950/20'
                             : 'border-neutral-900 bg-neutral-950/45 text-neutral-400 hover:border-neutral-750'
-                          }`}
+                        }`}
                       >
                         <div className="space-y-2.5 w-full">
                           <div className="flex items-center justify-between w-full">
@@ -302,10 +362,11 @@ export default function CheckoutPageClient({
                     <button
                       type="button"
                       onClick={() => setShowNewAddressForm(true)}
-                      className={`p-5 rounded-2xl border text-center cursor-pointer transition-all duration-300 flex flex-col items-center justify-center h-40 gap-2.5 active:scale-98 shadow-sm ${showNewAddressForm
+                      className={`p-5 rounded-2xl border text-center cursor-pointer transition-all duration-300 flex flex-col items-center justify-center h-40 gap-2.5 active:scale-98 shadow-sm ${
+                        showNewAddressForm
                           ? 'border-[#C1121F] bg-[#C1121F]/10 text-white shadow-lg shadow-red-950/20'
                           : 'border-dashed border-neutral-900 bg-transparent text-neutral-500 hover:border-neutral-750 hover:text-white'
-                        }`}
+                      }`}
                     >
                       <Plus className="w-6 h-6 text-[#C1121F] animate-pulse" />
                       <span className="text-[10px] font-black uppercase tracking-widest">
@@ -466,69 +527,265 @@ export default function CheckoutPageClient({
               </div>
             </div>
           </ScrollReveal>
+
+          {/* Payment Method Selection Card */}
+          <ScrollReveal fiery={false}>
+            <div className="bg-[#0F0F0F] border border-neutral-900 p-6 sm:p-8 rounded-3xl space-y-6 shadow-md relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 rounded-full bg-[#C1121F]/5 blur-3xl pointer-events-none"></div>
+              <div className="flex items-center justify-between border-b border-neutral-900 pb-3">
+                <h3 className="text-[10px] text-neutral-450 font-black uppercase tracking-widest">
+                  Payment Method
+                </h3>
+                <span className="text-[9px] font-black uppercase tracking-widest text-[#FF4D4D] bg-[#C1121F]/10 border border-[#C1121F]/30 px-2.5 py-0.5 rounded-full">
+                  {paymentMethod === 'COD' ? 'Selected: Cash on Delivery' : 'Selected: Pay Online'}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Option 1: Pay Online (Razorpay) */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPaymentMethod('RAZORPAY');
+                    setErrorMsg(null);
+                  }}
+                  className={`p-5 rounded-2xl border text-left cursor-pointer transition-all duration-300 flex flex-col justify-between min-h-[148px] shadow-sm active:scale-98 ${
+                    paymentMethod === 'RAZORPAY'
+                      ? 'border-[#C1121F] bg-[#C1121F]/10 text-white shadow-lg shadow-red-950/20'
+                      : 'border-neutral-900 bg-neutral-950/45 text-neutral-400 hover:border-neutral-750'
+                  }`}
+                >
+                  <div className="space-y-2.5 w-full">
+                    <div className="flex items-center justify-between w-full">
+                      <div className="flex items-center gap-2.5">
+                        <div className={`p-2 rounded-xl border ${
+                          paymentMethod === 'RAZORPAY'
+                            ? 'bg-[#C1121F]/20 border-[#C1121F]/40 text-[#FF4D4D]'
+                            : 'bg-neutral-950 border-neutral-900 text-neutral-500'
+                        }`}>
+                          <CreditCard className="w-4 h-4" />
+                        </div>
+                        <span className="font-extrabold text-xs uppercase text-white tracking-wider">
+                          Pay Online (Razorpay)
+                        </span>
+                      </div>
+                      {paymentMethod === 'RAZORPAY' && (
+                        <span className="bg-[#C1121F] text-white p-0.5 rounded-full shadow">
+                          <Check className="w-3 h-3" />
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[10px] font-semibold leading-relaxed text-neutral-400">
+                      Instant online payment via UPI, Credit/Debit Cards, NetBanking &amp; Wallets.
+                    </p>
+                  </div>
+                  <div className="text-[9px] font-extrabold uppercase tracking-widest flex items-center gap-1.5 border-t border-neutral-900 pt-2.5 w-full text-emerald-400">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                    256-Bit Razorpay Verified Gateway
+                  </div>
+                </button>
+
+                {/* Option 2: Cash on Delivery (COD) */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPaymentMethod('COD');
+                    setErrorMsg(null);
+                  }}
+                  className={`p-5 rounded-2xl border text-left cursor-pointer transition-all duration-300 flex flex-col justify-between min-h-[148px] shadow-sm active:scale-98 ${
+                    paymentMethod === 'COD'
+                      ? 'border-[#C1121F] bg-[#C1121F]/10 text-white shadow-lg shadow-red-950/20'
+                      : 'border-neutral-900 bg-neutral-950/45 text-neutral-400 hover:border-neutral-750'
+                  }`}
+                >
+                  <div className="space-y-2.5 w-full">
+                    <div className="flex items-center justify-between w-full">
+                      <div className="flex items-center gap-2.5">
+                        <div className={`p-2 rounded-xl border ${
+                          paymentMethod === 'COD'
+                            ? 'bg-[#C1121F]/20 border-[#C1121F]/40 text-[#FF4D4D]'
+                            : 'bg-neutral-950 border-neutral-900 text-neutral-500'
+                        }`}>
+                          <Banknote className="w-4 h-4" />
+                        </div>
+                        <span className="font-extrabold text-xs uppercase text-white tracking-wider">
+                          Cash on Delivery (COD)
+                        </span>
+                      </div>
+                      {paymentMethod === 'COD' && (
+                        <span className="bg-[#C1121F] text-white p-0.5 rounded-full shadow">
+                          <Check className="w-3 h-3" />
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[10px] font-semibold leading-relaxed text-neutral-400">
+                      Pay ₹{displayTotal.toFixed(0)} directly at your doorstep when your prints arrive.
+                    </p>
+                  </div>
+                  <div className="text-[9px] font-extrabold uppercase tracking-widest flex items-center gap-1.5 border-t border-neutral-900 pt-2.5 w-full text-amber-400">
+                    <Truck className="w-3.5 h-3.5 text-amber-400" />
+                    Pay Cash / UPI Upon Delivery
+                  </div>
+                </button>
+              </div>
+            </div>
+          </ScrollReveal>
         </div>
 
         {/* Right Side: Order Summary Review */}
         <div className="lg:col-span-4 space-y-6">
           <ScrollReveal fiery={false}>
-            <div className="bg-[#0F0F0F] border border-neutral-900 p-6 rounded-3xl space-y-6 shadow-md">
-              <h3 className="text-[10px] text-neutral-450 font-black uppercase tracking-widest border-b border-neutral-900 pb-3">
-                Order Items Summary
-              </h3>
+            <div className="bg-[#0F0F0F] border border-[#FFD700]/20 p-6 rounded-3xl space-y-6 shadow-md relative overflow-hidden">
+              <div className="absolute -top-12 -right-12 w-32 h-32 rounded-full bg-[#FFD700]/10 blur-3xl pointer-events-none" />
+              <div className="flex items-center justify-between border-b border-neutral-900 pb-3">
+                <h3 className="text-[10px] text-neutral-450 font-black uppercase tracking-widest flex items-center gap-2">
+                  <DiyaLamp size="sm" />
+                  <span>Order Items Summary</span>
+                </h3>
+                <span className={`text-[8.5px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full border ${
+                  isSaleActive
+                    ? 'bg-[#FFD700]/15 text-[#FFD700] border-[#FFD700]/40'
+                    : effectivePhase === 'UPCOMING'
+                    ? 'bg-amber-950/40 text-amber-300 border-amber-800/50'
+                    : 'bg-neutral-900 text-neutral-400 border-neutral-800'
+                }`}>
+                  {isSaleActive ? 'DIWALI SALE ACTIVE' : effectivePhase === 'UPCOMING' ? 'DIWALI SALE NOV 6' : 'STANDARD PRICING'}
+                </span>
+              </div>
 
               {/* Items Breakdown */}
               <div className="space-y-4.5 max-h-[260px] overflow-y-auto pr-1">
-                {calculations.items.map((item) => (
-                  <div key={item.id} className="flex gap-3 text-xs justify-between items-center pb-3 border-b border-neutral-900/60 last:border-b-0 last:pb-0">
-                    <div className="flex gap-3 items-center max-w-[70%]">
-                      <div className="relative w-10 h-12 rounded-lg bg-neutral-950 overflow-hidden border border-neutral-900 flex-shrink-0 shadow">
-                        <Image src={item.productImage} alt={item.productName} fill sizes="40px" className="object-cover" />
+                {calculations.items.map((item) => {
+                  const origUnit = item.originalUnitPrice || item.unitPrice;
+                  const diwaliUnit = item.diwaliUnitPrice || item.unitPrice;
+                  const displayUnit = isSaleActive ? diwaliUnit : origUnit;
+                  const displayLine = displayUnit * item.quantity;
+                  const origLine = origUnit * item.quantity;
+
+                  return (
+                    <div key={item.id} className="flex gap-3 text-xs justify-between items-center pb-3 border-b border-neutral-900/60 last:border-b-0 last:pb-0">
+                      <div className="flex gap-3 items-center max-w-[68%]">
+                        <div className="relative w-10 h-12 rounded-lg bg-neutral-950 overflow-hidden border border-neutral-900 flex-shrink-0 shadow">
+                          <Image src={item.productImage} alt={item.productName} fill sizes="40px" className="object-cover" />
+                        </div>
+                        <div>
+                          <span className="font-extrabold text-xs text-white uppercase truncate block tracking-wide">{item.productName}</span>
+                          <span className="text-[9px] text-neutral-500 uppercase tracking-widest font-bold block mt-0.5">
+                            {item.frameName && item.frameName !== 'No Frame' ? `${item.sizeName} (${item.frameName})` : item.sizeName} × {item.quantity}
+                          </span>
+                          {isSaleActive && origUnit > diwaliUnit && (
+                            <span className="text-[8.5px] font-black uppercase tracking-widest text-[#FFD700] block mt-0.5">
+                              <span className="line-through text-neutral-500 mr-1">₹{origUnit}</span>
+                              → ₹{diwaliUnit} each
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <div>
-                        <span className="font-extrabold text-xs text-white uppercase truncate block tracking-wide">{item.productName}</span>
-                        <span className="text-[9px] text-neutral-500 uppercase tracking-widest font-bold block mt-0.5">
-                          {item.frameName && item.frameName !== 'No Frame' ? `${item.sizeName} (${item.frameName})` : item.sizeName} × {item.quantity}
-                        </span>
+                      <div className="text-right shrink-0">
+                        {isSaleActive && origLine > displayLine && (
+                          <span className="text-[10px] font-bold text-neutral-500 line-through font-mono block">
+                            ₹{origLine.toFixed(0)}
+                          </span>
+                        )}
+                        <span className="font-black text-[#FFD700] font-mono">₹{displayLine.toFixed(0)}</span>
                       </div>
                     </div>
-                    <span className="font-black text-white font-mono shrink-0">₹{item.lineTotal.toFixed(0)}</span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* Calculations Breakdown */}
-              <div className="space-y-4 text-xs font-extrabold uppercase tracking-widest border-t border-neutral-900 pt-5">
+              <div className="space-y-3.5 text-xs font-extrabold uppercase tracking-widest border-t border-neutral-900 pt-5">
                 <div className="flex justify-between">
-                  <span className="text-neutral-500">Subtotal</span>
-                  <span className="font-mono text-white">₹{calculations.subtotal.toFixed(2)}</span>
+                  <span className="text-neutral-500">Original Price Subtotal</span>
+                  <span className={`font-mono ${isSaleActive && diwaliDiscount > 0 ? 'line-through text-neutral-500' : 'text-white'}`}>
+                    ₹{originalSubtotal.toFixed(2)}
+                  </span>
                 </div>
-                {calculations.discount && calculations.discount > 0 ? (
+                {isSaleActive && diwaliDiscount > 0 && (
+                  <div className="flex justify-between text-[#FFD700]">
+                    <span className="flex items-center gap-1">
+                      <Sparkles className="w-3.5 h-3.5 text-[#FFD700]" />
+                      Diwali Discount
+                    </span>
+                    <span className="font-mono font-black">-₹{diwaliDiscount.toFixed(2)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between">
+                  <span className="text-neutral-400">Festive Subtotal</span>
+                  <span className="font-mono text-white">₹{computedSubtotal.toFixed(2)}</span>
+                </div>
+                {additionalDiscount > 0 ? (
                   <div className="flex justify-between text-emerald-400">
-                    <span>Discount</span>
-                    <span className="font-mono font-black">-₹{calculations.discount.toFixed(2)}</span>
+                    <span>Promo Discount</span>
+                    <span className="font-mono font-black">-₹{additionalDiscount.toFixed(2)}</span>
                   </div>
                 ) : null}
                 <div className="flex justify-between items-center">
                   <span className="text-neutral-500">Delivery Charges</span>
-                  <span className={`font-black uppercase tracking-widest text-[9px] px-2.5 py-1 rounded-lg ${calculations.shippingFee === 0
+                  <span className={`font-black uppercase tracking-widest text-[9px] px-2.5 py-1 rounded-lg ${
+                    calculations.shippingFee === 0
                       ? 'text-emerald-400 bg-emerald-950/40 border border-emerald-900/60'
                       : 'text-neutral-350 bg-neutral-950 border border-neutral-900'
-                    }`}>
-                    {calculations.shippingFee === 0 ? '₹0' : `₹${calculations.shippingFee}`}
+                  }`}>
+                    {calculations.shippingFee === 0 ? '₹0 (FREE)' : `₹${calculations.shippingFee}`}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-neutral-500">Tax (Included)</span>
                   <span className="font-mono text-neutral-550">₹0.00</span>
                 </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-neutral-500">Payment Method</span>
+                  <span className={`font-black uppercase tracking-widest text-[9px] px-2.5 py-1 rounded-lg ${
+                    paymentMethod === 'COD'
+                      ? 'text-amber-400 bg-amber-950/40 border border-amber-900/60'
+                      : 'text-blue-400 bg-blue-950/40 border border-blue-900/60'
+                  }`}>
+                    {paymentMethod === 'COD' ? 'Cash on Delivery' : 'Razorpay Online'}
+                  </span>
+                </div>
                 <div className="flex justify-between border-t border-neutral-900 pt-5 text-sm sm:text-base font-black text-white">
-                  <span>Grand Total</span>
-                  <span className="text-[#FF4D4D] font-mono">₹{calculations.total.toFixed(2)}</span>
+                  <span>Final Payable</span>
+                  <span className="text-[#FFD700] font-mono diwali-gold-text-glow">₹{displayTotal.toFixed(2)}</span>
                 </div>
               </div>
 
-              {/* Minimum Order Warning Alert */}
-              {!isMinimumOrderMet && (
+              {totalSavings > 0 && (
+                <div className="p-3 bg-emerald-950/30 border border-emerald-800/50 rounded-2xl flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-emerald-300 flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-[#FFD700]" />
+                    Total Diwali Savings
+                  </span>
+                  <span className="text-xs font-black font-mono text-emerald-400">
+                    ₹{totalSavings.toFixed(0)} SAVED
+                  </span>
+                </div>
+              )}
+
+              {effectivePhase === 'UPCOMING' && (
+                <div className="p-3 bg-amber-950/20 border border-amber-900/50 rounded-2xl flex items-center gap-2 text-[9.5px] font-bold text-amber-300 leading-relaxed">
+                  <Clock className="w-3.5 h-3.5 text-[#FFD700] shrink-0" />
+                  <span>
+                    Diwali Offer (A3 ₹32, A4 ₹16, A5 ₹8, A6 ₹4) activates on 6 Nov 2026, 8:00 PM IST.
+                  </span>
+                </div>
+              )}
+
+              {paymentMethod === 'COD' && (
+                <div className="p-3.5 bg-amber-950/20 border border-amber-900/60 rounded-2xl space-y-1">
+                  <p className="text-[10px] font-black text-amber-400 flex items-center gap-1.5 uppercase tracking-wider">
+                    <Banknote className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    Cash on Delivery Selected
+                  </p>
+                  <p className="text-[10px] text-neutral-300 font-semibold leading-normal">
+                    Amount payable upon delivery: <span className="text-white font-black font-mono">₹{displayTotal.toFixed(2)}</span>
+                  </p>
+                </div>
+              )}
+
+              {/* Minimum Order Status */}
+              {!isMinimumOrderMet ? (
                 <div className="p-4 bg-amber-950/20 border border-amber-900/60 rounded-2xl space-y-1.5">
                   <p className="text-[10px] font-bold text-amber-400 flex items-center gap-1.5 uppercase tracking-wider">
                     <AlertCircle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
@@ -538,33 +795,46 @@ export default function CheckoutPageClient({
                     Minimum order value is ₹{MINIMUM_ORDER_VALUE}. Add ₹{formattedShortfall} more to place your order.
                   </p>
                 </div>
+              ) : (
+                <div className="p-3 bg-emerald-950/20 border border-emerald-900/50 rounded-2xl flex items-center justify-between">
+                  <span className="text-[9.5px] font-black uppercase tracking-widest text-emerald-400 flex items-center gap-1.5">
+                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                    Minimum Order (₹{MINIMUM_ORDER_VALUE}) Satisfied
+                  </span>
+                  <span className="text-[9px] font-black uppercase tracking-widest text-emerald-300">READY</span>
+                </div>
               )}
 
               {/* Submission Button */}
               <button
                 type="submit"
                 disabled={isSubmitting || isVerifying || !isMinimumOrderMet}
-                className="w-full inline-flex items-center justify-center gap-2.5 bg-gradient-to-r from-[#C1121F] to-[#FF4D4D] border-transparent text-white font-black py-4 rounded-2xl text-xs uppercase tracking-widest transition-all duration-300 disabled:bg-neutral-950 disabled:border-neutral-900 disabled:text-neutral-600 disabled:cursor-not-allowed cursor-pointer active:scale-97 fiery-button-glow shadow-lg shadow-red-950/20"
+                className="w-full inline-flex items-center justify-center gap-2.5 bg-gradient-to-r from-[#FFD700] via-[#FF8C00] to-[#C1121F] border-transparent text-black font-black py-4 rounded-2xl text-xs uppercase tracking-widest transition-all duration-300 disabled:bg-neutral-950 disabled:from-neutral-950 disabled:to-neutral-950 disabled:border-neutral-900 disabled:text-neutral-600 disabled:cursor-not-allowed cursor-pointer active:scale-97 diwali-button-glow shadow-lg shadow-amber-950/30"
               >
                 {isVerifying ? (
                   <>
-                    <div className="w-4 h-4 border-2 border-t-transparent border-white rounded-full animate-spin"></div>
+                    <div className="w-4 h-4 border-2 border-t-transparent border-black rounded-full animate-spin"></div>
                     <span>VERIFYING PAYMENT...</span>
                   </>
                 ) : isSubmitting ? (
                   <>
-                    <div className="w-4 h-4 border-2 border-t-transparent border-white rounded-full animate-spin"></div>
-                    <span>OPENING GATEWAY...</span>
+                    <div className="w-4 h-4 border-2 border-t-transparent border-black rounded-full animate-spin"></div>
+                    <span>{paymentMethod === 'COD' ? 'PLACING COD ORDER...' : 'OPENING GATEWAY...'}</span>
                   </>
                 ) : !isMinimumOrderMet ? (
                   <>
                     <ShoppingBag className="w-4.5 h-4.5 text-neutral-600" />
                     <span>ADD ₹{formattedShortfall} MORE TO PLACE ORDER</span>
                   </>
+                ) : paymentMethod === 'COD' ? (
+                  <>
+                    <Banknote className="w-4.5 h-4.5 text-black animate-pulse" />
+                    <span>PLACE COD ORDER (₹{displayTotal.toFixed(0)})</span>
+                  </>
                 ) : (
                   <>
-                    <ShoppingBag className="w-4.5 h-4.5 text-white animate-pulse" />
-                    <span>PAY ₹{calculations.total.toFixed(0)}</span>
+                    <ShoppingBag className="w-4.5 h-4.5 text-black animate-pulse" />
+                    <span>PAY ONLINE ₹{displayTotal.toFixed(0)}</span>
                   </>
                 )}
               </button>

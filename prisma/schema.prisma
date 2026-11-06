@@ -28,6 +28,11 @@ enum PaymentStatus {
   REFUNDED
 }
 
+enum PaymentMethod {
+  RAZORPAY
+  COD
+}
+
 enum ShipmentStatus {
   PENDING
   LABEL_GENERATED
@@ -261,6 +266,7 @@ model Order {
   tax                    Float          @default(0)
   total                  Float
   orderStatus            OrderStatus    @default(PENDING)
+  paymentMethod          PaymentMethod  @default(RAZORPAY)
   paymentStatus          PaymentStatus  @default(CREATED)
   payment                Payment?
   shippingAddressId      String?
@@ -302,6 +308,7 @@ model Payment {
   id                String        @id @default(cuid())
   orderId           String        @unique
   order             Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  paymentMethod     PaymentMethod @default(RAZORPAY)
   paymentStatus     PaymentStatus @default(CREATED)
   amount            Float
   currency          String        @default("INR")

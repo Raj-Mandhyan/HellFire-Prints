@@ -2,10 +2,12 @@
 
 import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
-import { ShoppingCart, User, Flame, Search, X, MoreVertical, ChevronRight } from 'lucide-react';
+import { ShoppingCart, User, Flame, Search, X, MoreVertical, ChevronRight, Sparkles } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import UpdatesStrip from '@/components/UpdatesStrip';
+import { FestiveJhalar } from '@/components/DiwaliDecorations';
+import { MINIMUM_ORDER_VALUE, ORIGINAL_SIZE_PRICES, DIWALI_SIZE_PRICES } from '@/lib/pricing';
 
 export default function Navbar() {
   const { cartCount } = useCart();
@@ -97,28 +99,29 @@ export default function Navbar() {
 
   return (
     <header className={`sticky top-0 z-50 w-full transition-all duration-500 ${isScrolled
-        ? 'premium-glass shadow-xl shadow-black/80 border-b border-neutral-900/80 bg-neutral-950/80'
-        : 'border-b border-transparent bg-transparent'
+        ? 'premium-glass shadow-xl shadow-black/80 border-b border-amber-500/25 bg-neutral-950/85 backdrop-blur-xl'
+        : 'border-b border-amber-500/15 bg-neutral-950/60 backdrop-blur-md'
       }`}>
       <UpdatesStrip
         updates={[
-          "Orders will be placed for a minimum of total of Rs. 50. Below which, no orders will be accepted.",
+          `🪔 THE GRAND DIWALI SALE 2026: A3 ₹${DIWALI_SIZE_PRICES.A3} (Was ₹${ORIGINAL_SIZE_PRICES.A3}) • A4 ₹${DIWALI_SIZE_PRICES.A4} (Was ₹${ORIGINAL_SIZE_PRICES.A4}) • A5 ₹${DIWALI_SIZE_PRICES.A5} (Was ₹${ORIGINAL_SIZE_PRICES.A5}) • A6 ₹${DIWALI_SIZE_PRICES.A6} (Was ₹${ORIGINAL_SIZE_PRICES.A6}) — Minimum order value is ₹${MINIMUM_ORDER_VALUE}.`,
+          `✨ VALID 6 NOV 2026 (8:00 PM IST) TO 9 NOV 2026 (4:00 AM IST) —Orders will be placed for a minimum total of Rs. ${MINIMUM_ORDER_VALUE}.`,
         ]}
         variant="top-notice"
       />
       <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
         {/* Left Side: Brand Logo */}
         <Link href="/" className="flex items-center gap-2 group">
-          <div className="bg-gradient-to-br from-[#C1121F] to-[#FF4D4D] p-1.5 rounded-xl transition-all duration-300 group-hover:scale-110 group-hover:shadow-[0_0_16px_rgba(193,18,31,0.7)] group-active:scale-95">
-            <Flame className="w-5 h-5 text-white animate-pulse-fire" />
+          <div className="bg-gradient-to-br from-[#C1121F] via-[#FF7B00] to-[#FFD700] p-1.5 rounded-xl transition-all duration-300 group-hover:scale-110 group-hover:shadow-[0_0_16px_rgba(255,215,0,0.6)] group-active:scale-95">
+            <Flame className="w-5 h-5 text-black animate-pulse-fire" />
           </div>
-          <span className="font-extrabold tracking-widest text-lg sm:text-xl text-white transition-all duration-300 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-neutral-400">
-            HELLFIRE <span className="text-[#C1121F] transition-colors duration-300 group-hover:text-[#FF4D4D] fiery-text-glow font-black">PRINTS</span>
+          <span className="font-extrabold tracking-widest text-lg sm:text-xl text-white transition-all duration-300 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-amber-200">
+            HELLFIRE <span className="text-[#FFD700] transition-colors duration-300 group-hover:text-[#FF9E00] diwali-gold-text-glow font-black">PRINTS</span>
           </span>
         </Link>
 
         {/* Center: Primary Navigation Links */}
-        <nav className="hidden md:flex items-center gap-6 text-xs sm:text-sm text-neutral-400 font-extrabold uppercase tracking-widest">
+        <nav className="hidden md:flex items-center gap-6 text-xs sm:text-sm text-neutral-300 font-extrabold uppercase tracking-widest">
           <Link
             href="/"
             className={`hover:text-white transition-colors relative py-1.5 group ${
@@ -127,27 +130,31 @@ export default function Navbar() {
           >
             Home
             <span
-              className={`absolute bottom-0 left-0 h-[2px] bg-gradient-to-r from-[#C1121F] to-[#FF4D4D] transition-all duration-300 rounded-full ${
+              className={`absolute bottom-0 left-0 h-[2px] bg-gradient-to-r from-[#C1121F] via-[#FF7B00] to-[#FFD700] transition-all duration-300 rounded-full ${
                 pathname === '/' ? 'w-full' : 'w-0 group-hover:w-full'
               }`}
             />
           </Link>
           <Link
             href="/#catalog"
-            className="hover:text-white transition-colors relative py-1.5 group"
+            className="hover:text-white transition-colors relative py-1.5 group flex items-center gap-1.5"
           >
-            Catalog
-            <span className="absolute bottom-0 left-0 w-0 h-[2px] bg-gradient-to-r from-[#C1121F] to-[#FF4D4D] group-hover:w-full transition-all duration-300 rounded-full" />
+            <span>Catalog</span>
+            <span className="px-2 py-0.5 rounded-full bg-gradient-to-r from-[#C1121F] to-[#FFD700] text-black text-[8px] font-black tracking-widest shadow-sm">
+              DIWALI SALE
+            </span>
+            <span className="absolute bottom-0 left-0 w-0 h-[2px] bg-gradient-to-r from-[#C1121F] via-[#FF7B00] to-[#FFD700] group-hover:w-full transition-all duration-300 rounded-full" />
           </Link>
           <Link
             href="/custom-poster"
-            className={`hover:text-white transition-colors relative py-1.5 group ${
+            className={`hover:text-white transition-colors relative py-1.5 group flex items-center gap-1 ${
               pathname === '/custom-poster' ? 'text-white font-bold' : ''
             }`}
           >
-            Custom Poster Studio
+            <Sparkles className="w-3.5 h-3.5 text-[#00E5FF]" />
+            <span>Custom Poster Studio</span>
             <span
-              className={`absolute bottom-0 left-0 h-[2px] bg-gradient-to-r from-[#C1121F] to-[#FF4D4D] transition-all duration-300 rounded-full ${
+              className={`absolute bottom-0 left-0 h-[2px] bg-gradient-to-r from-[#00E5FF] to-[#FFD700] transition-all duration-300 rounded-full ${
                 pathname === '/custom-poster' ? 'w-full' : 'w-0 group-hover:w-full'
               }`}
             />
@@ -155,12 +162,12 @@ export default function Navbar() {
         </nav>
 
         {/* Right Side: Quick Action Icons */}
-        <div className="flex items-center gap-3 sm:gap-4 text-neutral-450">
+        <div className="flex items-center gap-3 sm:gap-4 text-neutral-300">
           <Link
             href="/custom-poster"
             className={`md:hidden text-[10px] uppercase tracking-widest font-black px-3.5 py-2 rounded-full border transition-all duration-300 active:scale-95 ${pathname === '/custom-poster'
-                ? 'bg-gradient-to-r from-[#C1121F] to-[#FF4D4D] border-transparent text-white shadow-lg shadow-red-950/30'
-                : 'bg-neutral-900 border-neutral-850 text-neutral-350 hover:text-white hover:border-neutral-700'
+                ? 'bg-gradient-to-r from-[#C1121F] to-[#FFD700] border-transparent text-black shadow-lg shadow-amber-950/30'
+                : 'bg-neutral-900 border-amber-500/30 text-amber-200 hover:text-white hover:border-amber-400'
               }`}
           >
             Custom Poster
@@ -174,7 +181,7 @@ export default function Navbar() {
                   value={searchVal}
                   onChange={(e) => setSearchVal(e.target.value)}
                   placeholder="Search posters..."
-                  className="bg-neutral-900 border border-neutral-800 text-white rounded-xl px-3 py-1.5 text-xs w-32 sm:w-44 placeholder-neutral-600 focus:outline-none focus:border-[#C1121F] transition-all"
+                  className="bg-neutral-900 border border-amber-500/40 text-white rounded-xl px-3 py-1.5 text-xs w-32 sm:w-44 placeholder-neutral-500 focus:outline-none focus:border-[#FFD700] transition-all"
                   autoFocus
                 />
                 <button
@@ -189,23 +196,23 @@ export default function Navbar() {
             <button
               type="button"
               onClick={handleSearchClick}
-              className="p-2.5 hover:text-white transition-all hover:scale-110 active:scale-90 cursor-pointer"
+              className="p-2.5 hover:text-[#FFD700] transition-all hover:scale-110 active:scale-90 cursor-pointer"
               aria-label="Search"
             >
               <Search className="w-4.5 h-4.5" />
             </button>
           </div>
 
-          <Link href="/cart" className="p-2.5 hover:text-white transition-all hover:scale-110 active:scale-90 relative" aria-label="Cart">
+          <Link href="/cart" className="p-2.5 hover:text-[#FFD700] transition-all hover:scale-110 active:scale-90 relative" aria-label="Cart">
             <ShoppingCart className="w-4.5 h-4.5" />
             {cartCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 bg-gradient-to-r from-[#C1121F] to-[#FF4D4D] text-white text-[9px] font-black w-5 h-5 rounded-full flex items-center justify-center shadow-md shadow-black/50 border border-neutral-950">
+              <span className="absolute -top-0.5 -right-0.5 bg-gradient-to-r from-[#C1121F] via-[#FF7B00] to-[#FFD700] text-black text-[9px] font-black w-5 h-5 rounded-full flex items-center justify-center shadow-md shadow-black/50 border border-neutral-950">
                 {cartCount}
               </span>
             )}
           </Link>
 
-          <Link href={isAuthenticated ? "/account" : "/login"} className="p-2.5 hover:text-white transition-all hover:scale-110 active:scale-90" aria-label="Account">
+          <Link href={isAuthenticated ? "/account" : "/login"} className="p-2.5 hover:text-[#FFD700] transition-all hover:scale-110 active:scale-90" aria-label="Account">
             <User className="w-4.5 h-4.5" />
           </Link>
 
@@ -215,7 +222,7 @@ export default function Navbar() {
               type="button"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className={`p-2.5 transition-all hover:scale-110 active:scale-90 cursor-pointer ${
-                isMenuOpen ? 'text-white scale-110' : 'hover:text-white text-neutral-450'
+                isMenuOpen ? 'text-[#FFD700] scale-110' : 'hover:text-white text-neutral-300'
               }`}
               aria-label="Toggle Navigation Menu"
               aria-expanded={isMenuOpen}
@@ -224,11 +231,11 @@ export default function Navbar() {
             </button>
 
             {isMenuOpen && (
-              <div className="absolute right-0 top-11 w-72 premium-glass rounded-2xl p-4.5 shadow-[0_20px_50px_rgba(0,0,0,0.85)] border border-neutral-900/80 z-50 animate-fade-in text-left space-y-4">
+              <div className="absolute right-0 top-11 w-72 bg-neutral-950/95 backdrop-blur-xl rounded-2xl p-4.5 shadow-[0_20px_50px_rgba(0,0,0,0.85)] border border-amber-500/30 z-50 animate-fade-in text-left space-y-4">
                 
                 {/* Category: Account */}
                 <div className="space-y-1.5">
-                  <h4 className="text-[9px] text-neutral-500 font-extrabold uppercase tracking-widest border-b border-neutral-900/60 pb-1.5 pl-1 select-none">
+                  <h4 className="text-[9px] text-amber-400 font-extrabold uppercase tracking-widest border-b border-neutral-900/60 pb-1.5 pl-1 select-none">
                     My Account
                   </h4>
                   <ul className="space-y-1 text-xs font-semibold uppercase tracking-wider text-neutral-300">
@@ -279,7 +286,7 @@ export default function Navbar() {
                 {/* Category: Admin (Conditional) */}
                 {isAdmin && (
                   <div className="space-y-1.5">
-                    <h4 className="text-[9px] text-neutral-500 font-extrabold uppercase tracking-widest border-b border-neutral-900/60 pb-1.5 pl-1 select-none">
+                    <h4 className="text-[9px] text-amber-400 font-extrabold uppercase tracking-widest border-b border-neutral-900/60 pb-1.5 pl-1 select-none">
                       Admin Clearance
                     </h4>
                     <ul className="space-y-1 text-xs font-semibold uppercase tracking-wider text-neutral-300">
@@ -313,7 +320,7 @@ export default function Navbar() {
 
                 {/* Category: Company Info */}
                 <div className="space-y-1.5">
-                  <h4 className="text-[9px] text-neutral-500 font-extrabold uppercase tracking-widest border-b border-neutral-900/60 pb-1.5 pl-1 select-none">
+                  <h4 className="text-[9px] text-amber-400 font-extrabold uppercase tracking-widest border-b border-neutral-900/60 pb-1.5 pl-1 select-none">
                     Information
                   </h4>
                   <ul className="space-y-1 text-[11px] font-semibold text-neutral-400">
@@ -397,6 +404,9 @@ export default function Navbar() {
           </div>
         </div>
       </div>
+
+      {/* Subtle Hanging Festive Jhalar on non-home pages */}
+      {pathname !== '/' && <FestiveJhalar variant="header" />}
     </header>
   );
 }

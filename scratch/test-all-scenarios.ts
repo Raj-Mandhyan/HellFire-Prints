@@ -74,8 +74,8 @@ async function runTests() {
   // -------------------------------------------------------------------
   // TEST SECTION 3: MINIMUM ORDER VALUE CONSTANT AND LOGIC
   // -------------------------------------------------------------------
-  console.log('\n--- TEST SECTION 3: Minimum Order Value (₹50) Rule ---');
-  assert(MINIMUM_ORDER_VALUE === 50, 'MINIMUM_ORDER_VALUE constant equals 50');
+  console.log('\n--- TEST SECTION 3: Minimum Order Value (₹30) Rule ---');
+  assert((MINIMUM_ORDER_VALUE as number) === 30, 'MINIMUM_ORDER_VALUE constant equals 30');
 
   // Test Order Validation function logic
   function validateOrderThreshold(subtotal: number, discount = 0, shippingFee = 0) {

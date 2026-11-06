@@ -127,14 +127,21 @@ export default async function AccountPage() {
                           className="flex flex-col sm:flex-row sm:items-center justify-between p-5 bg-[#0A0A0A]/40 border border-neutral-850 rounded-2xl gap-4 hover:border-neutral-700 transition-colors"
                         >
                           <div className="space-y-1.5">
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2.5 flex-wrap">
                               <span className="font-extrabold text-sm text-white uppercase font-mono">{ord.orderNumber}</span>
                               <span className={`text-[9px] font-extrabold uppercase px-2 py-0.5 rounded ${
-                                ord.orderStatus === 'CONFIRMED'
+                                ord.orderStatus === 'CONFIRMED' || ord.orderStatus === 'DELIVERED'
                                   ? 'bg-emerald-950/40 border border-emerald-900 text-emerald-400'
                                   : 'bg-amber-950/40 border border-amber-900 text-amber-400'
                               }`}>
                                 {ord.orderStatus}
+                              </span>
+                              <span className={`text-[9px] font-extrabold uppercase px-2 py-0.5 rounded ${
+                                ord.paymentMethod === 'COD'
+                                  ? 'bg-amber-950/30 border border-amber-800/60 text-amber-300'
+                                  : 'bg-blue-950/30 border border-blue-900/60 text-blue-300'
+                              }`}>
+                                {ord.paymentMethod === 'COD' ? 'COD' : 'ONLINE'}
                               </span>
                             </div>
                             <div className="text-[10px] text-neutral-500 flex items-center gap-4">

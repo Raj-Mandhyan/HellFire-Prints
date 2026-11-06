@@ -1,6 +1,5 @@
 import prisma from '../lib/prisma';
 import { POSTER_SIZES, calculateCustomPosterPrice } from '../lib/customPosterPricing';
-import { DEFAULT_SIZE_PRICES, SIZE_DISPLAY_DIMENSIONS } from '../lib/pricing';
 
 async function verifyCustomPosterStudio() {
   console.log('===============================================================');

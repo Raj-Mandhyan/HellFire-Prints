@@ -63,8 +63,10 @@ function generateOrderEmailHtml(order: any, address: AddressData, dateTime: { fo
     address.country || 'India',
   ].filter(Boolean).join(', ');
 
-  const razorpayPaymentId = order.payment?.razorpayPaymentId || 'N/A';
-  const razorpayOrderId = order.razorpayOrderId || order.payment?.razorpayOrderId || 'N/A';
+  const isCod = order.paymentMethod === 'COD';
+  const paymentGatewayLabel = isCod ? 'Cash on Delivery (COD - Collected)' : 'Razorpay (Verified)';
+  const razorpayPaymentId = order.payment?.razorpayPaymentId || (isCod ? 'COD-COLLECTED' : 'N/A');
+  const razorpayOrderId = order.razorpayOrderId || order.payment?.razorpayOrderId || (isCod ? 'COD-ORDER' : 'N/A');
 
   // Item rows
   const itemRows = order.items.map((item: any, index: number) => {
@@ -182,8 +184,8 @@ function generateOrderEmailHtml(order: any, address: AddressData, dateTime: { fo
                     <div style="font-size: 13px; color: #334155; margin-top: 3px;">${dateTime.formatted}</div>
                   </td>
                   <td width="50%" style="vertical-align: top; padding: 6px 10px;">
-                    <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; font-weight: 700;">Payment Gateway</div>
-                    <div style="font-size: 13px; color: #334155; margin-top: 3px; font-weight: 600;">Razorpay (Verified)</div>
+                    <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; font-weight: 700;">Payment Method</div>
+                    <div style="font-size: 13px; color: #334155; margin-top: 3px; font-weight: 600;">${paymentGatewayLabel}</div>
                   </td>
                 </tr>
                 <tr>
@@ -362,8 +364,10 @@ function generateOrderEmailText(order: any, address: AddressData, dateTime: { fo
     address.country || 'India',
   ].filter(Boolean).join(', ');
 
-  const razorpayPaymentId = order.payment?.razorpayPaymentId || 'N/A';
-  const razorpayOrderId = order.razorpayOrderId || order.payment?.razorpayOrderId || 'N/A';
+  const isCod = order.paymentMethod === 'COD';
+  const paymentGatewayLabel = isCod ? 'Cash on Delivery (COD - Collected)' : 'Razorpay (Verified)';
+  const razorpayPaymentId = order.payment?.razorpayPaymentId || (isCod ? 'COD-COLLECTED' : 'N/A');
+  const razorpayOrderId = order.razorpayOrderId || order.payment?.razorpayOrderId || (isCod ? 'COD-ORDER' : 'N/A');
 
   const itemsText = order.items.map((item: any, idx: number) => {
     const isCustom = Boolean(item.customPosterId || item.customPoster);
@@ -392,7 +396,7 @@ Order Number        : #${order.orderNumber}
 Order ID            : ${order.id}
 Date & Time         : ${dateTime.formatted}
 Payment Status      : PAID / SUCCESSFULLY VERIFIED
-Payment Provider    : Razorpay
+Payment Provider    : ${paymentGatewayLabel}
 Razorpay Payment ID : ${razorpayPaymentId}
 Razorpay Order ID   : ${razorpayOrderId}
 
