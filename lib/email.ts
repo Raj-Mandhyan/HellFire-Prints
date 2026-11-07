@@ -1,5 +1,26 @@
 import { Resend } from 'resend';
+import { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
+
+type OrderWithDetails = Prisma.OrderGetPayload<{
+  include: {
+    user: {
+      select: {
+        name: true;
+        email: true;
+      };
+    };
+    items: {
+      include: {
+        customPoster: true;
+      };
+    };
+    payment: true;
+    shippingAddress: true;
+  };
+}>;
+
+type OrderItemWithPoster = OrderWithDetails['items'][number];
 
 // Default recipient requested by website owner
 export const DEFAULT_ADMIN_EMAIL = 'raj.mandhyan@gmail.com';
@@ -51,7 +72,7 @@ function formatISTDateTime(date: Date): { formatted: string; iso: string } {
 /**
  * Generate responsive, clean HTML email template
  */
-function generateOrderEmailHtml(order: any, address: AddressData, dateTime: { formatted: string; iso: string }): string {
+function generateOrderEmailHtml(order: OrderWithDetails, address: AddressData, dateTime: { formatted: string; iso: string }): string {
   const customerName = address.name || order.user?.name || 'Valued Customer';
   const customerEmail = order.user?.email || 'Not provided';
   const customerPhone = address.phone || 'Not provided';
@@ -69,7 +90,7 @@ function generateOrderEmailHtml(order: any, address: AddressData, dateTime: { fo
   const razorpayOrderId = order.razorpayOrderId || order.payment?.razorpayOrderId || (isCod ? 'COD-ORDER' : 'N/A');
 
   // Item rows
-  const itemRows = order.items.map((item: any, index: number) => {
+  const itemRows = order.items.map((item: OrderItemWithPoster, index: number) => {
     const lineTotal = item.price * item.quantity;
     const isCustom = Boolean(item.customPosterId || item.customPoster);
     const customImageUrl = item.customPoster?.imageUrl;
@@ -352,7 +373,7 @@ function generateOrderEmailHtml(order: any, address: AddressData, dateTime: { fo
 /**
  * Generate clean Plain-Text email fallback
  */
-function generateOrderEmailText(order: any, address: AddressData, dateTime: { formatted: string; iso: string }): string {
+function generateOrderEmailText(order: OrderWithDetails, address: AddressData, dateTime: { formatted: string; iso: string }): string {
   const customerName = address.name || order.user?.name || 'Valued Customer';
   const customerEmail = order.user?.email || 'Not provided';
   const customerPhone = address.phone || 'Not provided';
@@ -369,7 +390,7 @@ function generateOrderEmailText(order: any, address: AddressData, dateTime: { fo
   const razorpayPaymentId = order.payment?.razorpayPaymentId || (isCod ? 'COD-COLLECTED' : 'N/A');
   const razorpayOrderId = order.razorpayOrderId || order.payment?.razorpayOrderId || (isCod ? 'COD-ORDER' : 'N/A');
 
-  const itemsText = order.items.map((item: any, idx: number) => {
+  const itemsText = order.items.map((item: OrderItemWithPoster, idx: number) => {
     const isCustom = Boolean(item.customPosterId || item.customPoster);
     let str = `${idx + 1}. ${item.title}${isCustom ? ' [CUSTOM ARTWORK]' : ''}\n`;
     str += `   - Size: ${item.sizeName}${item.sizeDimensions ? ` (${item.sizeDimensions})` : ''}\n`;

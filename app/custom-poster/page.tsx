@@ -24,7 +24,7 @@ import {
   calculateCustomPosterPrice,
   getCustomPosterPricingDetails
 } from '@/lib/customPosterPricing';
-import { getDiwaliOfferStatus } from '@/lib/pricing';
+import { DIWALI_OFFER_START_MS } from '@/lib/pricing';
 import PosterSizeReference from '@/components/PosterSizeReference';
 import CyberCursorTrail from '@/components/CyberCursorTrail';
 
@@ -357,21 +357,23 @@ function ConfiguratorContent() {
   }, []);
 
   // Pricing calculations synchronized with backend & Diwali Offer
-  const { previewPhase } = useCart();
-  const [livePhase, setLivePhase] = useState<'UPCOMING' | 'ACTIVE' | 'EXPIRED'>('ACTIVE');
-  useEffect(() => {
-    setLivePhase(getDiwaliOfferStatus(new Date()).phase);
-  }, []);
-  const effectivePhase = previewPhase ?? livePhase;
+  const { previewPhase, liveOfferStatus } = useCart();
+  const effectivePhase = previewPhase ?? liveOfferStatus.phase;
   const isExpired = effectivePhase === 'EXPIRED';
 
   const priceBreakdown = useMemo(() => {
-    const details = getCustomPosterPricingDetails(sizeName, new Date(), isExpired ? 'EXPIRED' : 'ACTIVE');
+    const details = getCustomPosterPricingDetails(
+      sizeName,
+      new Date(DIWALI_OFFER_START_MS),
+      isExpired ? 'EXPIRED' : 'ACTIVE'
+    );
     const unitPrice = details.effectivePrice;
     return {
+      retailMrpUnitPrice: details.retailMrp,
       originalUnitPrice: details.originalPrice,
       diwaliUnitPrice: details.diwaliPrice,
       unitPrice,
+      retailMrpTotal: details.retailMrp * quantity,
       originalTotal: details.originalPrice * quantity,
       total: unitPrice * quantity,
       totalSavings: details.savings * quantity,
@@ -1810,11 +1812,21 @@ function ConfiguratorContent() {
                 <span>Festive Unit Price</span>
                 {!priceBreakdown.isExpired ? (
                   <span className="font-bold">
-                    <span className="text-[#91A4C7] line-through mr-2">₹{priceBreakdown.originalUnitPrice}</span>
+                    <span className="text-[#91A4C7]/70 line-through mr-1.5 text-[10px]">
+                      MRP ₹{priceBreakdown.retailMrpUnitPrice}
+                    </span>
+                    <span className="text-[#91A4C7] line-through mr-2">
+                      Base ₹{priceBreakdown.originalUnitPrice}
+                    </span>
                     <span className="text-[#FFD700]">₹{priceBreakdown.diwaliUnitPrice}</span>
                   </span>
                 ) : (
-                  <span className="text-[#00E5FF] font-bold">₹{priceBreakdown.originalUnitPrice}</span>
+                  <span className="font-bold">
+                    <span className="text-[#91A4C7]/70 line-through mr-2 text-[10px]">
+                      MRP ₹{priceBreakdown.retailMrpUnitPrice}
+                    </span>
+                    <span className="text-[#00E5FF]">₹{priceBreakdown.originalUnitPrice}</span>
+                  </span>
                 )}
               </div>
               {!priceBreakdown.isExpired && (

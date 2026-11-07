@@ -8,8 +8,15 @@ import {
 } from './pricing';
 
 export interface DiscountBreakdown {
+  /** Sum of Retail MRP across all cart items (reference only, never charged) */
+  retailMrpSubtotal: number;
+  /** Sum of Base Selling Prices across all cart items (normal non-promotional subtotal) */
   originalSubtotal: number;
+  /** Additional Diwali savings off Base Selling Price (originalSubtotal - subtotal) */
   diwaliDiscount: number;
+  /** Total savings off Retail MRP (retailMrpSubtotal - total) */
+  mrpSavings: number;
+  /** Effective selling subtotal (Diwali Selling Price during active campaign, else Base Selling Price) */
   subtotal: number;
   quantityDiscount: number;
   couponDiscount: number;
@@ -30,9 +37,10 @@ export interface DiscountBreakdown {
 }
 
 /**
- * Authoritative Server-Side Cart & Promotional Pricing Calculation Engine.
+ * Authoritative Server-Side Cart & Three-Tier Promotional Pricing Calculation Engine.
  * Dynamically validates the Diwali Offer timestamp in IST (Asia/Kolkata) and
  * ensures promotional discounts are never double-applied or accepted after expiration.
+ * Retail MRP is strictly a reference value and is NEVER charged at checkout.
  */
 export async function calculateCartTotal(
   cartId: string,
@@ -68,8 +76,10 @@ export async function calculateCartTotal(
 
   if (!cart || !cart.items.length) {
     return {
+      retailMrpSubtotal: 0,
       originalSubtotal: 0,
       diwaliDiscount: 0,
+      mrpSavings: 0,
       subtotal: 0,
       quantityDiscount: 0,
       couponDiscount: 0,
@@ -85,28 +95,40 @@ export async function calculateCartTotal(
     };
   }
 
+  let retailMrpSubtotal = 0;
   let originalSubtotal = 0;
   let subtotal = 0;
   let diwaliDiscount = 0;
 
   for (const item of cart.items) {
-    let itemOriginalPrice = 0;
+    let itemRetailMrp = 0;
+    let itemBaseSellingPrice = 0;
     let itemEffectivePrice = 0;
 
     if (item.customPosterId && item.customPoster) {
       // Dynamically revalidate custom poster price against current IST offer window
       const sizePricing = getSizePricing(item.customPoster.sizeName || 'A4', now);
-      itemOriginalPrice = sizePricing.originalPrice;
+      itemRetailMrp = sizePricing.retailMrp;
+      itemBaseSellingPrice = sizePricing.baseSellingPrice;
       itemEffectivePrice = sizePricing.effectivePrice;
     } else {
-      const variantPricing = getVariantPricing(item.variant, item.product.price, now);
-      itemOriginalPrice = variantPricing.originalPrice;
+      const variantPricing = getVariantPricing(
+        item.variant,
+        item.product.price,
+        now,
+        undefined,
+        item.product.MRP,
+        item.product.diwaliPrice
+      );
+      itemRetailMrp = variantPricing.retailMrp;
+      itemBaseSellingPrice = variantPricing.baseSellingPrice;
       itemEffectivePrice = variantPricing.effectivePrice;
     }
 
-    originalSubtotal += itemOriginalPrice * item.quantity;
+    retailMrpSubtotal += itemRetailMrp * item.quantity;
+    originalSubtotal += itemBaseSellingPrice * item.quantity;
     subtotal += itemEffectivePrice * item.quantity;
-    diwaliDiscount += Math.max(0, itemOriginalPrice - itemEffectivePrice) * item.quantity;
+    diwaliDiscount += Math.max(0, itemBaseSellingPrice - itemEffectivePrice) * item.quantity;
   }
 
   // Do not apply automatic multi-buy percentage discount on top of Diwali promotional prices
@@ -161,19 +183,27 @@ export async function calculateCartTotal(
   const totalDiscount = Math.round((quantityDiscount + couponDiscount) * 100) / 100;
   const discountedSubtotal = Math.max(0, subtotal - totalDiscount);
 
-  // Total customer savings = Diwali promotional savings + any coupon discount
+  // Total customer savings vs Base Selling Price = Diwali promotional savings + any coupon discount
   const totalSavings = Math.round((diwaliDiscount + totalDiscount) * 100) / 100;
+
+  // Total customer savings vs Retail MRP
+  const mrpSavings = Math.max(0, Math.round((retailMrpSubtotal - discountedSubtotal) * 100) / 100);
 
   // Free shipping across all orders
   const shippingFee = 0;
   const total = Math.round((discountedSubtotal + shippingFee) * 100) / 100;
 
   const isMinimumOrderMet = discountedSubtotal >= MINIMUM_ORDER_VALUE && total >= MINIMUM_ORDER_VALUE;
-  const shortfallAmount = Math.max(0, Math.round((MINIMUM_ORDER_VALUE - discountedSubtotal) * 100) / 100);
+  const shortfallAmount = Math.max(
+    0,
+    Math.round((MINIMUM_ORDER_VALUE - discountedSubtotal) * 100) / 100
+  );
 
   return {
+    retailMrpSubtotal: Math.round(retailMrpSubtotal * 100) / 100,
     originalSubtotal: Math.round(originalSubtotal * 100) / 100,
     diwaliDiscount: Math.round(diwaliDiscount * 100) / 100,
+    mrpSavings,
     subtotal: Math.round(subtotal * 100) / 100,
     quantityDiscount,
     couponDiscount,

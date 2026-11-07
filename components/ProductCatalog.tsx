@@ -7,10 +7,10 @@ import { Search, SlidersHorizontal, ArrowUpDown, ChevronLeft, ChevronRight, Star
 import { Prisma } from '@prisma/client';
 import ScrollReveal from './ScrollReveal';
 import {
-  getSizePricing,
-  getDiwaliOfferStatus,
+  getVariantPricing,
   ORIGINAL_SIZE_PRICES,
   DIWALI_SIZE_PRICES,
+  DIWALI_OFFER_START_MS,
 } from '@/lib/pricing';
 import { useCart } from '@/context/CartContext';
 
@@ -26,8 +26,12 @@ type ProductWithRelations = Prisma.ProductGetPayload<{
     };
   };
 }> & {
+  diwaliPrice?: number | null;
   variants?: Array<{
     price?: number | null;
+    retailMrp?: number | null;
+    baseSellingPrice?: number | null;
+    diwaliSellingPrice?: number | null;
     size?: {
       name: string;
     } | null;
@@ -49,19 +53,19 @@ export function ProductCard({ product }: ProductCardProps) {
   const isExpired = effectivePhase === 'EXPIRED';
   const a4Variant = product.variants?.find((v) => v.size?.name === 'A4');
   const a6Variant = product.variants?.find((v) => v.size?.name === 'A6');
-  const a4RegularPrice =
-    a4Variant?.price && a4Variant.price > 0
-      ? a4Variant.price
-      : product.price > 0
-        ? product.price
-        : ORIGINAL_SIZE_PRICES.A4;
-  const a6RegularPrice =
-    a6Variant?.price && a6Variant.price > 0 ? a6Variant.price : ORIGINAL_SIZE_PRICES.A6;
-  const a4Pricing = getSizePricing(
-    'A4',
-    new Date(),
+  const a4Pricing = getVariantPricing(
+    a4Variant,
+    product.price,
+    new Date(DIWALI_OFFER_START_MS),
     isExpired ? 'EXPIRED' : 'ACTIVE',
-    a4RegularPrice
+    product.MRP,
+    product.diwaliPrice
+  );
+  const a6Pricing = getVariantPricing(
+    a6Variant,
+    ORIGINAL_SIZE_PRICES.A6,
+    new Date(DIWALI_OFFER_START_MS),
+    isExpired ? 'EXPIRED' : 'ACTIVE'
   );
 
   const images = useMemo(() => {
@@ -173,10 +177,10 @@ export function ProductCard({ product }: ProductCardProps) {
           <div className="absolute top-3.5 left-3.5 z-20 flex flex-col gap-1">
             <span className="inline-flex items-center gap-1 bg-gradient-to-r from-[#C1121F] via-[#FF7B00] to-[#FFD700] text-black text-[9px] font-black uppercase px-2.5 py-1 rounded-lg tracking-widest shadow-lg shadow-black/50">
               <Sparkles className="w-2.5 h-2.5" />
-              DIWALI SALE • {a4Pricing.discountPercentage}% OFF
+              DIWALI SPECIAL OFFER • {a4Pricing.discountPercentage}% OFF
             </span>
             <span className="w-fit bg-black/80 backdrop-blur-md border border-[#FFD700]/40 text-[#FFD700] text-[8.5px] font-mono font-bold uppercase px-2 py-0.5 rounded-md">
-              A6 FROM ₹{DIWALI_SIZE_PRICES.A6} (~~₹{a6RegularPrice}~~)
+              A6 FROM ₹{a6Pricing.diwaliSellingPrice} (MRP ~~₹{a6Pricing.retailMrp}~~ • Base ~~₹{a6Pricing.baseSellingPrice}~~)
             </span>
           </div>
         ) : (
@@ -272,15 +276,27 @@ export function ProductCard({ product }: ProductCardProps) {
         </div>
 
         <div className="flex items-end justify-between pt-3 border-t border-neutral-900/80">
-          {/* Prices (A4 Standard Showcase with Original -> Diwali Price & Savings) */}
+          {/* Prices (A4 Three-Tier Showcase during Diwali, Two-Tier when Expired) */}
           {!isExpired ? (
             <div className="flex flex-col animate-price-pop">
-              <div className="flex items-baseline gap-2">
-                <span className="text-xs font-mono font-bold text-neutral-400 line-through decoration-[#FF4D4D] decoration-2">
-                  ₹{a4Pricing.originalPrice}
+              <div className="flex items-center gap-2 text-[10px] font-mono">
+                <span className="text-neutral-500">
+                  MRP{' '}
+                  <span className="line-through decoration-neutral-500 font-bold text-neutral-400">
+                    ₹{a4Pricing.retailMrp}
+                  </span>
                 </span>
+                <span className="text-neutral-400">•</span>
+                <span className="text-neutral-400">
+                  Base{' '}
+                  <span className="line-through decoration-[#FF4D4D] decoration-2 font-bold text-amber-200/80">
+                    ₹{a4Pricing.baseSellingPrice}
+                  </span>
+                </span>
+              </div>
+              <div className="flex items-baseline gap-2 mt-0.5">
                 <span className="text-xl font-mono font-black text-[#FFD700] leading-none">
-                  ₹{a4Pricing.diwaliPrice}
+                  ₹{a4Pricing.diwaliSellingPrice}
                 </span>
                 <span className="text-[9px] font-mono font-bold text-neutral-400 uppercase">
                   (A4)
@@ -291,14 +307,20 @@ export function ProductCard({ product }: ProductCardProps) {
                   SAVE ₹{a4Pricing.savings}
                 </span>
                 <span className="text-[9px] text-amber-300/80 font-bold uppercase tracking-wider">
-                  Festive Price
+                  Diwali Offer
                 </span>
               </div>
             </div>
           ) : (
             <div className="flex flex-col">
-              <span className="text-lg font-mono font-black text-white leading-none">
-                ₹{a4Pricing.originalPrice}
+              <span className="text-[10px] font-mono text-neutral-500">
+                MRP{' '}
+                <span className="line-through decoration-neutral-500 font-bold text-neutral-400">
+                  ₹{a4Pricing.retailMrp}
+                </span>
+              </span>
+              <span className="text-lg font-mono font-black text-white leading-none mt-0.5">
+                ₹{a4Pricing.baseSellingPrice}
               </span>
               <span className="text-[10px] text-neutral-500 font-bold uppercase mt-1">
                 Standard A4 Print

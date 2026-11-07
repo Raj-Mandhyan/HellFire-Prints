@@ -78,6 +78,7 @@ export default async function CheckoutPage() {
   const breakdown = await calculateCartTotal(cart.id, now);
 
   const itemsSnapshot = cart.items.map((item) => {
+    let retailMrpUnitPrice = 0;
     let originalUnitPrice = 0;
     let diwaliUnitPrice = 0;
     let unitPrice = 0;
@@ -92,18 +93,28 @@ export default async function CheckoutPage() {
       frameName = item.customPoster.frameName;
       paperType = item.customPoster.paperType;
       const customPricing = getSizePricing(sizeName, now);
+      retailMrpUnitPrice = customPricing.retailMrp;
       originalUnitPrice = customPricing.originalPrice;
       diwaliUnitPrice = customPricing.diwaliPrice;
       unitPrice = customPricing.effectivePrice;
       productName = `Custom Poster Print`;
       productImage = item.customPoster.imageUrl;
     } else {
-      const variantPricing = getVariantPricing(item.variant, item.product.price, now);
+      const variantPricing = getVariantPricing(
+        item.variant,
+        item.product.price,
+        now,
+        undefined,
+        item.product.MRP,
+        item.product.diwaliPrice
+      );
+      retailMrpUnitPrice = variantPricing.retailMrp;
       originalUnitPrice = variantPricing.originalPrice;
       diwaliUnitPrice = variantPricing.diwaliPrice;
       unitPrice = variantPricing.effectivePrice;
     }
 
+    const retailMrpLineTotal = retailMrpUnitPrice * item.quantity;
     const originalLineTotal = originalUnitPrice * item.quantity;
     const lineTotal = unitPrice * item.quantity;
 
@@ -115,9 +126,11 @@ export default async function CheckoutPage() {
       frameName,
       paperType,
       quantity: item.quantity,
+      retailMrpUnitPrice,
       originalUnitPrice,
       diwaliUnitPrice,
       unitPrice,
+      retailMrpLineTotal,
       originalLineTotal,
       lineTotal,
     };
@@ -125,8 +138,10 @@ export default async function CheckoutPage() {
 
   const orderCalculations = {
     items: itemsSnapshot,
+    retailMrpSubtotal: breakdown.retailMrpSubtotal,
     originalSubtotal: breakdown.originalSubtotal,
     diwaliDiscount: breakdown.diwaliDiscount,
+    mrpSavings: breakdown.mrpSavings,
     subtotal: breakdown.subtotal,
     discount: breakdown.totalDiscount,
     totalSavings: breakdown.totalSavings,

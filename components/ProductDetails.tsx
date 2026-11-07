@@ -21,8 +21,8 @@ import {
 import {
   getVariantUnitPrice,
   getVariantPricing,
-  getDiwaliOfferStatus,
   MINIMUM_ORDER_VALUE,
+  DIWALI_OFFER_START_MS,
   DIWALI_OFFER_START_DISPLAY,
   DIWALI_OFFER_END_DISPLAY,
 } from '@/lib/pricing';
@@ -256,9 +256,14 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
         id: string;
         name: string;
         dimensions: string;
+        retailMrp: number;
+        baseSellingPrice: number;
+        diwaliSellingPrice: number;
         originalPrice: number;
         diwaliPrice: number;
         savings: number;
+        normalDaySavings: number;
+        mrpSavings: number;
         discountPercentage: number;
       }
     >();
@@ -267,8 +272,10 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
         const sizePricing = getVariantPricing(
           v,
           product.price,
-          new Date(),
-          isExpired ? 'EXPIRED' : 'ACTIVE'
+          new Date(DIWALI_OFFER_START_MS),
+          isExpired ? 'EXPIRED' : 'ACTIVE',
+          product.MRP,
+          product.diwaliPrice
         );
         const existing = map.get(v.size.id);
         if (!existing || !v.frameId) {
@@ -276,9 +283,14 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
             id: v.size.id,
             name: v.size.name,
             dimensions: SIZE_DISPLAY_DIMENSIONS[v.size.name] || v.size.dimensions,
+            retailMrp: sizePricing.retailMrp,
+            baseSellingPrice: sizePricing.baseSellingPrice,
+            diwaliSellingPrice: sizePricing.diwaliSellingPrice,
             originalPrice: sizePricing.originalPrice,
             diwaliPrice: sizePricing.diwaliPrice,
             savings: sizePricing.savings,
+            normalDaySavings: sizePricing.normalDaySavings,
+            mrpSavings: sizePricing.mrpSavings,
             discountPercentage: sizePricing.discountPercentage,
           });
         }
@@ -287,7 +299,7 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
     return Array.from(map.values()).sort(
       (a, b) => ALLOWED_SIZES.indexOf(a.name) - ALLOWED_SIZES.indexOf(b.name)
     );
-  }, [product.variants, product.price, isExpired, ALLOWED_SIZES, SIZE_DISPLAY_DIMENSIONS]);
+  }, [product.variants, product.price, product.MRP, product.diwaliPrice, isExpired, ALLOWED_SIZES, SIZE_DISPLAY_DIMENSIONS]);
 
   // Default size: prioritize A4, fallback to first available size
   const defaultSizeId = useMemo(() => {
@@ -333,10 +345,12 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
     return getVariantPricing(
       selectedVariant,
       product.price,
-      new Date(),
-      isExpired ? 'EXPIRED' : 'ACTIVE'
+      new Date(DIWALI_OFFER_START_MS),
+      isExpired ? 'EXPIRED' : 'ACTIVE',
+      product.MRP,
+      product.diwaliPrice
     );
-  }, [selectedVariant, product.price, isExpired]);
+  }, [selectedVariant, product.price, product.MRP, product.diwaliPrice, isExpired]);
 
   // Trigger add to cart
   const handleAddToCart = async () => {
@@ -616,21 +630,37 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
             </div>
           </div>
 
-          {/* Festive Pricing Block */}
+          {/* Festive Pricing Block (Three-Tier during Diwali, Two-Tier when Expired) */}
           <div className="bg-gradient-to-b from-[#17090D] to-[#0B0406] p-5 border border-[#FFD700]/35 rounded-2xl shadow-inner space-y-3 relative overflow-hidden">
             {!isExpired ? (
               <div className="flex items-center justify-between gap-3 animate-price-pop">
-                <div className="space-y-1.5">
-                  <div className="flex items-baseline gap-3 flex-wrap">
-                    <span className="text-base sm:text-lg font-mono font-bold text-neutral-400 line-through decoration-[#FF4D4D] decoration-2">
-                      ₹{activeSizePricing.originalPrice}
+                <div className="space-y-2">
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-mono">
+                    <span className="text-neutral-400">
+                      Retail MRP:{' '}
+                      <span className="line-through decoration-neutral-500 decoration-2 font-bold text-neutral-300">
+                        ₹{activeSizePricing.retailMrp}
+                      </span>
                     </span>
-                    <span className="text-sm font-bold text-amber-400">→</span>
+                    <span className="text-neutral-300">
+                      Base Selling Price:{' '}
+                      <span className="line-through decoration-[#FF4D4D] decoration-2 font-bold text-amber-200/80">
+                        ₹{activeSizePricing.baseSellingPrice}
+                      </span>
+                    </span>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-gradient-to-r from-[#C1121F] via-[#FF7B00] to-[#FFD700] text-black text-[9px] font-black uppercase tracking-widest">
+                      DIWALI SPECIAL OFFER
+                    </span>
+                  </div>
+                  <div className="flex items-baseline gap-3 flex-wrap">
+                    <span className="text-xs font-black uppercase tracking-wider text-amber-300">
+                      Diwali Selling Price:
+                    </span>
                     <span className="text-3xl sm:text-4xl font-mono font-black text-[#FFD700] drop-shadow-[0_0_12px_rgba(255,215,0,0.4)]">
-                      ₹{activeSizePricing.diwaliPrice}
+                      ₹{activeSizePricing.diwaliSellingPrice}
                     </span>
                     <span className="bg-emerald-950/70 border border-emerald-500/40 text-emerald-300 text-[10px] font-black uppercase px-2.5 py-1 rounded-lg tracking-widest">
-                      SAVE ₹{activeSizePricing.savings} ({activeSizePricing.discountPercentage}% OFF)
+                      Additional Diwali Savings: ₹{activeSizePricing.savings} ({activeSizePricing.discountPercentage}% OFF)
                     </span>
                   </div>
                   <p className="text-[10px] font-mono font-semibold text-amber-200/85">
@@ -642,13 +672,24 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
                 </div>
               </div>
             ) : (
-              <div className="flex items-baseline gap-3.5">
-                <span className="text-3xl font-mono font-black text-white">
-                  ₹{activeSizePricing.originalPrice.toFixed(2)}
-                </span>
-                <span className="text-[10px] font-mono text-neutral-500 uppercase">
-                  Standard Price ({activeSizePricing.sizeName})
-                </span>
+              <div className="space-y-1">
+                <div className="text-xs font-mono text-neutral-400">
+                  Retail MRP:{' '}
+                  <span className="line-through decoration-neutral-500 decoration-2 font-bold text-neutral-300">
+                    ₹{activeSizePricing.retailMrp}
+                  </span>
+                </div>
+                <div className="flex items-baseline gap-3.5">
+                  <span className="text-xs font-black uppercase tracking-wider text-neutral-300">
+                    Selling Price:
+                  </span>
+                  <span className="text-3xl font-mono font-black text-white">
+                    ₹{activeSizePricing.baseSellingPrice.toFixed(2)}
+                  </span>
+                  <span className="text-[10px] font-mono text-emerald-400 uppercase font-bold">
+                    Save ₹{activeSizePricing.normalDaySavings} off MRP ({activeSizePricing.sizeName})
+                  </span>
+                </div>
               </div>
             )}
           </div>
@@ -691,15 +732,31 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
                         <span className="text-sm font-black uppercase tracking-wider text-white">{size.name}</span>
                         {!isExpired ? (
                           <div className="flex items-baseline gap-1.5 font-mono">
-                            <span className="text-[11px] text-neutral-400 line-through decoration-[#FF4D4D]">
-                              ₹{size.originalPrice}
+                            <span
+                              className="text-[10px] text-neutral-500 line-through"
+                              title={`Retail MRP: ₹${size.retailMrp}`}
+                            >
+                              ₹{size.retailMrp}
+                            </span>
+                            <span
+                              className="text-[11px] text-neutral-400 line-through decoration-[#FF4D4D]"
+                              title={`Base Selling Price: ₹${size.baseSellingPrice}`}
+                            >
+                              ₹{size.baseSellingPrice}
                             </span>
                             <span className="text-sm font-black text-[#FFD700]">
-                              ₹{size.diwaliPrice}
+                              ₹{size.diwaliSellingPrice}
                             </span>
                           </div>
                         ) : (
-                          <span className="text-xs font-mono font-black text-white">₹{size.originalPrice}</span>
+                          <div className="flex items-baseline gap-1.5 font-mono">
+                            <span className="text-[10px] text-neutral-500 line-through">
+                              ₹{size.retailMrp}
+                            </span>
+                            <span className="text-xs font-mono font-black text-white">
+                              ₹{size.baseSellingPrice}
+                            </span>
+                          </div>
                         )}
                       </div>
                       <div className="flex items-center justify-between mt-1.5">

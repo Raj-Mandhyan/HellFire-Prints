@@ -58,11 +58,16 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
   const isCod = order.paymentMethod === 'COD';
   const isPaid = order.paymentStatus === 'CAPTURED';
 
-  // Calculate original price comparison & Diwali savings if applicable
+  // Calculate original price comparison & Diwali savings using historical OrderItem snapshots where available
   const originalItemsTotal = order.items.reduce((sum, item) => {
-    const baseOriginal = getSizePricing(item.sizeName || 'A4', new Date('2026-11-01T00:00:00+05:30')).originalPrice;
-    const refOriginal = Math.max(baseOriginal, item.price);
+    const fallbackPricing = getSizePricing(item.sizeName || 'A4', new Date('2026-11-01T00:00:00+05:30'));
+    const refOriginal = item.baseSellingPrice ?? Math.max(fallbackPricing.baseSellingPrice, item.price);
     return sum + refOriginal * item.quantity;
+  }, 0);
+  const retailMrpItemsTotal = order.items.reduce((sum, item) => {
+    const fallbackPricing = getSizePricing(item.sizeName || 'A4', new Date('2026-11-01T00:00:00+05:30'));
+    const refMrp = item.retailMrp ?? Math.max(fallbackPricing.retailMrp, item.price);
+    return sum + refMrp * item.quantity;
   }, 0);
   const diwaliOrderSavings = Math.max(0, originalItemsTotal - order.subtotal) + (order.discount || 0);
 
@@ -76,7 +81,7 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
         <ScrollReveal>
           <div className="bg-[#161616] p-8 rounded-3xl border border-[#FFD700]/30 flex flex-col items-center text-center space-y-4 relative overflow-hidden shadow-[0_0_45px_rgba(255,215,0,0.08)]">
             <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-[#C1121F] via-[#FFD700] to-[#C1121F]"></div>
-            <FestiveJhalar variant="hero" className="opacity-75" />
+            <FestiveJhalar className="opacity-75" />
 
             <div className="flex items-center justify-center gap-4 pt-3">
               <DiyaLamp size="sm" />
@@ -173,13 +178,12 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
                 <div>
                   <p className="text-[10px] text-neutral-500 uppercase tracking-widest block font-bold">Payment Status</p>
                   <span
-                    className={`inline-block mt-1 text-[9px] font-extrabold uppercase px-2.5 py-0.5 rounded border ${
-                      isPaid
-                        ? 'bg-emerald-950/40 border-emerald-900 text-emerald-400'
-                        : order.paymentStatus === 'FAILED'
+                    className={`inline-block mt-1 text-[9px] font-extrabold uppercase px-2.5 py-0.5 rounded border ${isPaid
+                      ? 'bg-emerald-950/40 border-emerald-900 text-emerald-400'
+                      : order.paymentStatus === 'FAILED'
                         ? 'bg-rose-950/40 border-rose-900 text-rose-400'
                         : 'bg-amber-950/40 border-amber-900 text-amber-400'
-                    }`}
+                      }`}
                   >
                     {isCod
                       ? isPaid
@@ -213,6 +217,9 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
               <div className="space-y-5">
                 {order.items.map((item) => {
                   const isCustom = !!item.customPoster;
+                  const fallbackPricing = getSizePricing(item.sizeName || 'A4', new Date('2026-11-01T00:00:00+05:30'));
+                  const itemMrp = item.retailMrp ?? Math.max(fallbackPricing.retailMrp, item.price);
+                  const itemBase = item.baseSellingPrice ?? Math.max(fallbackPricing.baseSellingPrice, item.price);
                   return (
                     <div key={item.id} className="flex justify-between items-center gap-4 text-xs pb-4 border-b border-neutral-900/60 last:border-b-0 last:pb-0 font-medium">
                       <div className="space-y-1">
@@ -222,7 +229,18 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
                         <span className="text-[9px] text-neutral-500 uppercase tracking-wide block">
                           Size: {item.sizeName} {item.sizeDimensions ? `(${item.sizeDimensions})` : ''}{item.paperType ? ` | Finish: ${item.paperType}` : ''}{item.frameName ? ` | Frame: ${item.frameName}` : ''}
                         </span>
-                        <span className="text-[10px] text-neutral-600 font-mono block">Qty: {item.quantity} × ₹{item.price.toFixed(0)}</span>
+                        <span className="text-[10px] text-neutral-500 font-mono block">
+                          Qty: {item.quantity} × ₹{item.price.toFixed(0)}{' '}
+                          {itemBase > item.price ? (
+                            <span className="text-neutral-600">
+                              (MRP <span className="line-through">₹{itemMrp.toFixed(0)}</span> • Base <span className="line-through">₹{itemBase.toFixed(0)}</span>)
+                            </span>
+                          ) : itemMrp > item.price ? (
+                            <span className="text-neutral-600">
+                              (MRP <span className="line-through">₹{itemMrp.toFixed(0)}</span>)
+                            </span>
+                          ) : null}
+                        </span>
 
                         {isCustom && item.customPoster?.imageUrl && (
                           <a
@@ -243,10 +261,16 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
 
               {/* Calculations totals */}
               <div className="space-y-3.5 text-xs border-t border-neutral-900 pt-5 font-medium">
+                {retailMrpItemsTotal > order.subtotal && (
+                  <div className="flex justify-between">
+                    <span className="text-neutral-500">Retail MRP Subtotal</span>
+                    <span className="font-semibold text-neutral-500 line-through font-mono">₹{retailMrpItemsTotal.toFixed(2)}</span>
+                  </div>
+                )}
                 {originalItemsTotal > order.subtotal && (
                   <>
                     <div className="flex justify-between">
-                      <span className="text-neutral-500">Original Price Subtotal</span>
+                      <span className="text-neutral-500">Base Selling Subtotal</span>
                       <span className="font-semibold text-neutral-500 line-through font-mono">₹{originalItemsTotal.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-[#FFD700]">

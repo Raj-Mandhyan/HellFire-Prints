@@ -221,7 +221,7 @@ export default function CartPage() {
                   <div className="space-y-4">
                     {cart.items.map((item) => {
                       const origUnit = item.originalUnitPrice ?? item.unitPrice;
-                      const diwaliUnit = item.diwaliUnitPrice ?? item.unitPrice;
+                      const mrpUnit = item.retailMrpUnitPrice ?? Math.max(origUnit, item.unitPrice);
                       const isDiscountedNow = item.unitPrice < origUnit;
 
                       return (
@@ -278,13 +278,13 @@ export default function CartPage() {
                               <div className="pt-1 flex items-center gap-2 flex-wrap">
                                 {isDiscountedNow ? (
                                   <span className="text-[9px] font-mono font-bold text-emerald-400 bg-emerald-950/50 border border-emerald-500/30 px-2 py-0.5 rounded">
-                                    Diwali Price: ~~₹{origUnit}~~ → ₹{item.unitPrice} (Save ₹{origUnit - item.unitPrice}/unit)
+                                    MRP ~~₹{mrpUnit}~~ • Base ~~₹{origUnit}~~ → Diwali Price: ₹{item.unitPrice} (Save ₹{origUnit - item.unitPrice}/unit)
                                   </span>
-                                ) : offerPhase === 'UPCOMING' && diwaliUnit < origUnit ? (
-                                  <span className="text-[9px] font-mono font-bold text-amber-300 bg-amber-950/40 border border-amber-500/30 px-2 py-0.5 rounded">
-                                    Pre-Sale: ₹{origUnit} • Diwali Price: ₹{diwaliUnit} (Starts 6 Nov 8PM IST)
+                                ) : (
+                                  <span className="text-[9px] font-mono font-bold text-neutral-400 bg-neutral-900/60 border border-neutral-800 px-2 py-0.5 rounded">
+                                    MRP ~~₹{mrpUnit}~~ → Selling Price: ₹{item.unitPrice}
                                   </span>
-                                ) : null}
+                                )}
                               </div>
                             </div>
                           </div>

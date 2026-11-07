@@ -7,7 +7,7 @@ import { createHmac, timingSafeEqual } from 'crypto';
 import Razorpay from 'razorpay';
 import { calculateCartTotal } from '@/lib/discounts';
 import {
-  getVariantUnitPrice,
+  getVariantPricing,
   getSizePricing,
   MINIMUM_ORDER_VALUE,
 } from '@/lib/pricing';
@@ -205,13 +205,16 @@ export async function initiatePaymentAction(
 
     const itemsToCreate = cart.items.map((item) => {
       if (item.customPosterId && item.customPoster) {
-        const revalidatedCustomPrice = getSizePricing(item.customPoster.sizeName || 'A4', now).effectivePrice;
+        const customPricing = getSizePricing(item.customPoster.sizeName || 'A4', now);
         return {
           productId: item.productId,
           variantId: null,
           customPosterId: item.customPosterId,
           title: `Custom Poster Print`,
-          price: revalidatedCustomPrice,
+          price: customPricing.effectivePrice,
+          retailMrp: customPricing.retailMrp,
+          baseSellingPrice: customPricing.baseSellingPrice,
+          diwaliSellingPrice: customPricing.diwaliSellingPrice,
           quantity: item.quantity,
           sizeName: item.customPoster.sizeName,
           sizeDimensions: "",
@@ -219,13 +222,23 @@ export async function initiatePaymentAction(
           paperType: item.customPoster.paperType,
         };
       } else {
-        const unitPrice = getVariantUnitPrice(item.variant, item.product.price, now);
+        const variantPricing = getVariantPricing(
+          item.variant,
+          item.product.price,
+          now,
+          undefined,
+          item.product.MRP,
+          item.product.diwaliPrice
+        );
         return {
           productId: item.productId,
           variantId: item.variantId,
           customPosterId: null,
           title: item.product.title,
-          price: unitPrice,
+          price: variantPricing.effectivePrice,
+          retailMrp: variantPricing.retailMrp,
+          baseSellingPrice: variantPricing.baseSellingPrice,
+          diwaliSellingPrice: variantPricing.diwaliSellingPrice,
           quantity: item.quantity,
           sizeName: item.variant?.size?.name || 'A4',
           sizeDimensions: item.variant?.size?.dimensions || '',
@@ -465,13 +478,16 @@ export async function placeCodOrderAction(
 
     const itemsToCreate = cart.items.map((item) => {
       if (item.customPosterId && item.customPoster) {
-        const revalidatedCustomPrice = getSizePricing(item.customPoster.sizeName || 'A4', now).effectivePrice;
+        const customPricing = getSizePricing(item.customPoster.sizeName || 'A4', now);
         return {
           productId: item.productId,
           variantId: null,
           customPosterId: item.customPosterId,
           title: `Custom Poster Print`,
-          price: revalidatedCustomPrice,
+          price: customPricing.effectivePrice,
+          retailMrp: customPricing.retailMrp,
+          baseSellingPrice: customPricing.baseSellingPrice,
+          diwaliSellingPrice: customPricing.diwaliSellingPrice,
           quantity: item.quantity,
           sizeName: item.customPoster.sizeName,
           sizeDimensions: '',
@@ -479,13 +495,23 @@ export async function placeCodOrderAction(
           paperType: item.customPoster.paperType,
         };
       } else {
-        const unitPrice = getVariantUnitPrice(item.variant, item.product.price, now);
+        const variantPricing = getVariantPricing(
+          item.variant,
+          item.product.price,
+          now,
+          undefined,
+          item.product.MRP,
+          item.product.diwaliPrice
+        );
         return {
           productId: item.productId,
           variantId: item.variantId,
           customPosterId: null,
           title: item.product.title,
-          price: unitPrice,
+          price: variantPricing.effectivePrice,
+          retailMrp: variantPricing.retailMrp,
+          baseSellingPrice: variantPricing.baseSellingPrice,
+          diwaliSellingPrice: variantPricing.diwaliSellingPrice,
           quantity: item.quantity,
           sizeName: item.variant?.size?.name || 'A4',
           sizeDimensions: item.variant?.size?.dimensions || '',

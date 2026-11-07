@@ -7,6 +7,7 @@ import ScrollReveal from '@/components/ScrollReveal';
 import DiwaliHeroSection from '@/components/DiwaliHeroSection';
 import { DiyaSectionDivider, DiyaLamp } from '@/components/DiwaliDecorations';
 import { ANNOUNCEMENT_UPDATES } from '@/lib/constants';
+import { getServerTimestampMs } from '@/lib/pricing';
 import { ShieldCheck, Truck, Zap, Sparkles } from 'lucide-react';
 import { Prisma } from '@prisma/client';
 import Link from 'next/link';
@@ -64,7 +65,7 @@ export default async function HomePage() {
     errorMsg = error instanceof Error ? error.message : String(error);
   }
 
-  const serverTimeMs = Date.now();
+  const serverTimeMs = getServerTimestampMs();
 
   return (
     <div className="min-h-screen bg-transparent text-[#F5F5F5] flex flex-col font-sans selection:bg-[#C1121F] selection:text-white overflow-x-hidden">

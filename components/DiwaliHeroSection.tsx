@@ -314,29 +314,46 @@ export default function DiwaliHeroSection({ initialServerTimeMs }: DiwaliHeroSec
                     </p>
                   </div>
 
-                  {/* Price Reduction Display */}
+                  {/* Price Reduction Display (Three-Tier during Diwali, Two-Tier when Expired) */}
                   <div className="pt-2 border-t border-amber-500/15">
                     {!isExpiredView ? (
                       <div className="space-y-1.5 animate-price-pop">
-                        <div className="flex items-baseline gap-2.5">
-                          <span
-                            className="text-base sm:text-lg font-mono font-bold text-neutral-400 line-through decoration-[#FF4D4D] decoration-2"
-                            title={`Original Price: ₹${card.originalPrice}`}
-                          >
-                            ₹{card.originalPrice}
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] font-mono">
+                          <span className="text-neutral-400">
+                            Retail MRP:{' '}
+                            <span
+                              className="line-through decoration-neutral-500 decoration-2 font-bold text-neutral-300"
+                              title={`Retail MRP: ₹${card.retailMrp}`}
+                            >
+                              ₹{card.retailMrp}
+                            </span>
                           </span>
-                          <span className="text-xs font-bold text-amber-400">→</span>
-                          <span
-                            className="text-3xl sm:text-4xl font-mono font-black text-[#FFD700] drop-shadow-[0_0_12px_rgba(255,215,0,0.4)]"
-                            title={`Diwali Price: ₹${card.diwaliPrice}`}
-                          >
-                            ₹{card.diwaliPrice}
+                          <span className="text-neutral-300">
+                            Base Selling Price:{' '}
+                            <span
+                              className="line-through decoration-[#FF4D4D] decoration-2 font-bold text-amber-200/80"
+                              title={`Base Selling Price: ₹${card.baseSellingPrice}`}
+                            >
+                              ₹{card.baseSellingPrice}
+                            </span>
                           </span>
                         </div>
 
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-baseline gap-2.5">
+                          <span className="text-[10px] font-black uppercase tracking-wider text-amber-300">
+                            Diwali Selling Price:
+                          </span>
+                          <span
+                            className="text-3xl sm:text-4xl font-mono font-black text-[#FFD700] drop-shadow-[0_0_12px_rgba(255,215,0,0.4)]"
+                            title={`Diwali Selling Price: ₹${card.diwaliSellingPrice}`}
+                          >
+                            ₹{card.diwaliSellingPrice}
+                          </span>
+                        </div>
+
+                        <div className="flex flex-wrap items-center justify-between gap-1">
                           <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-emerald-300 bg-emerald-950/60 border border-emerald-500/40 px-2.5 py-0.5 rounded-md">
-                            SAVE ₹{card.savings} ({card.discountPercentage}% OFF)
+                            Additional Diwali Savings: ₹{card.savings} ({card.discountPercentage}% OFF)
                           </span>
                           <span className="text-[9px] font-mono font-bold text-amber-300/80 uppercase">
                             {isUpcomingView ? 'Starts 6 Nov' : 'Diwali Offer'}
@@ -345,12 +362,20 @@ export default function DiwaliHeroSection({ initialServerTimeMs }: DiwaliHeroSec
                       </div>
                     ) : (
                       <div className="space-y-1">
-                        <span className="text-3xl font-mono font-black text-white">
-                          ₹{card.originalPrice}
-                        </span>
-                        <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider">
-                          Original Archive Price
-                        </p>
+                        <div className="text-[11px] font-mono text-neutral-400">
+                          Retail MRP:{' '}
+                          <span className="line-through decoration-neutral-500 decoration-2 font-bold">
+                            ₹{card.retailMrp}
+                          </span>
+                        </div>
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-3xl font-mono font-black text-white">
+                            ₹{card.baseSellingPrice}
+                          </span>
+                          <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">
+                            Save ₹{card.normalDaySavings} off MRP
+                          </span>
+                        </div>
                       </div>
                     )}
                   </div>

@@ -121,8 +121,9 @@ model Product {
   title       String
   slug        String         @unique
   description String         @db.Text
-  price       Float          // Base price
-  MRP         Float          // Original retail price
+  price       Float          // Base selling price (A4 default)
+  MRP         Float          // Original retail MRP (A4 default)
+  diwaliPrice Float?         // Diwali selling price (A4 default)
   discount    Float          @default(0) // Discount percentage
   SKU         String         @unique
   featured    Boolean        @default(false)
@@ -162,9 +163,12 @@ model ProductVariant {
   size            ProductSize  @relation(fields: [sizeId], references: [id], onDelete: Restrict)
   frameId         String?
   frame           ProductFrame? @relation(fields: [frameId], references: [id], onDelete: SetNull)
-  paperType       String?       // Optional/Legacy: "Matte", "Glossy"
-  price           Float?        // Specific size price for this product
-  additionalPrice Float        @default(0)
+  paperType          String?       // Optional/Legacy: "Matte", "Glossy"
+  price              Float?        // Specific size base selling price (kept synced with baseSellingPrice)
+  retailMrp          Float?        // Size-specific Retail MRP
+  baseSellingPrice   Float?        // Size-specific Base Selling Price (normal days)
+  diwaliSellingPrice Float?        // Size-specific Diwali Selling Price (active Diwali sale)
+  additionalPrice    Float        @default(0)
   stock           Int          @default(10)
   SKU             String       @unique
   cartItems       CartItem[]
@@ -293,9 +297,12 @@ model OrderItem {
   variant        ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
   customPosterId String?         @unique
   customPoster   CustomPoster?   @relation(fields: [customPosterId], references: [id], onDelete: SetNull)
-  title          String
-  price          Float
-  quantity       Int
+  title              String
+  price              Float
+  retailMrp          Float?
+  baseSellingPrice   Float?
+  diwaliSellingPrice Float?
+  quantity           Int
   sizeName       String
   sizeDimensions String
   frameName      String?

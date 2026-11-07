@@ -11,6 +11,8 @@ interface ProductData {
   title: string;
   slug: string;
   price: number;
+  MRP?: number;
+  diwaliPrice?: number | null;
   SKU: string;
   active: boolean;
   createdAt: Date;
@@ -222,8 +224,13 @@ export default function ProductListTable({ products: initialProducts, categories
                       </td>
 
                       {/* Price */}
-                      <td className="py-4 px-6 text-right font-mono font-black text-white text-xs">
-                        ₹{p.price.toFixed(0)}
+                      <td className="py-4 px-6 text-right font-mono">
+                        <div className="font-black text-white text-xs">
+                          ₹{p.price.toFixed(0)}
+                        </div>
+                        <div className="text-[9px] text-neutral-500 font-bold">
+                          MRP ₹{(p.MRP ?? 59).toFixed(0)} • Diwali ₹{(p.diwaliPrice ?? 16).toFixed(0)}
+                        </div>
                       </td>
 
                       {/* Stock */}

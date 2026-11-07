@@ -7,6 +7,12 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { validateImageUrl } from '@/lib/image-validation';
 import { sendOrderAdminNotification } from '@/lib/email';
+import {
+  RETAIL_MRP_SIZE_PRICES,
+  DIWALI_SIZE_PRICES,
+  ThreeTierPriceValues,
+  validateThreeTierPriceHierarchy,
+} from '@/lib/pricing';
 
 // Helper to validate and normalize slug
 async function generateUniqueSlug(title: string, currentProductId?: string): Promise<string> {
@@ -41,6 +47,50 @@ async function generateUniqueSlug(title: string, currentProductId?: string): Pro
 }
 
 /**
+ * Parse and validate Three-Tier pricing from FormData for all 4 poster sizes (A3, A4, A5, A6).
+ * Enforces: Retail MRP >= Base Selling Price >= Diwali Selling Price > 0.
+ */
+function parseAndValidateSizeTierPrices(
+  formData: FormData
+): { valid: true; sizeTierMap: Record<string, ThreeTierPriceValues> } | { valid: false; error: string } {
+  const SIZES = ['A3', 'A4', 'A5', 'A6'] as const;
+  const sizeTierMap: Record<string, ThreeTierPriceValues> = {};
+
+  for (const code of SIZES) {
+    const baseRaw = formData.get(`price_${code}`) as string | null;
+    if (!baseRaw) {
+      return { valid: false, error: `Base Selling Price for size ${code} is required.` };
+    }
+    const baseVal = parseFloat(baseRaw);
+    if (Number.isNaN(baseVal) || baseVal <= 0) {
+      return { valid: false, error: `Size ${code}: Base Selling Price must be a valid positive number.` };
+    }
+
+    const mrpRaw = formData.get(`mrp_${code}`) as string | null;
+    const diwaliRaw = formData.get(`diwali_${code}`) as string | null;
+
+    const mrpVal =
+      mrpRaw !== null && mrpRaw.trim() !== ''
+        ? parseFloat(mrpRaw)
+        : Math.max(baseVal, RETAIL_MRP_SIZE_PRICES[code] ?? baseVal);
+
+    const diwaliVal =
+      diwaliRaw !== null && diwaliRaw.trim() !== ''
+        ? parseFloat(diwaliRaw)
+        : Math.min(baseVal, DIWALI_SIZE_PRICES[code] ?? baseVal);
+
+    const check = validateThreeTierPriceHierarchy(mrpVal, baseVal, diwaliVal, `Size ${code}`);
+    if (!check.valid) {
+      return { valid: false, error: check.error || `Invalid pricing hierarchy for size ${code}.` };
+    }
+
+    sizeTierMap[code] = check.normalized;
+  }
+
+  return { valid: true, sizeTierMap };
+}
+
+/**
  * Server Action: Create Product
  */
 export async function createProductAction(prevState: unknown, formData: FormData) {
@@ -51,6 +101,7 @@ export async function createProductAction(prevState: unknown, formData: FormData
     const description = formData.get('description') as string;
     const priceRaw = formData.get('price') as string;
     const MRPRaw = formData.get('MRP') as string;
+    const diwaliPriceRaw = formData.get('diwaliPrice') as string;
     const discountRaw = formData.get('discount') as string;
     const SKU = formData.get('SKU') as string;
     const categoryId = formData.get('categoryId') as string;
@@ -59,50 +110,28 @@ export async function createProductAction(prevState: unknown, formData: FormData
     const featured = formData.get('featured') === 'true';
     const trending = formData.get('trending') === 'true';
 
-    // Size prices
-    const priceA6Raw = formData.get('price_A6') as string;
-    const priceA5Raw = formData.get('price_A5') as string;
-    const priceA4Raw = formData.get('price_A4') as string;
-    const priceA3Raw = formData.get('price_A3') as string;
-
     // Validation
     if (!title || !description || !SKU || !categoryId || !stockRaw) {
       return { error: 'All primary fields (title, description, SKU, category, stock) are required.' };
     }
 
-    if (!priceA6Raw || !priceA5Raw || !priceA4Raw || !priceA3Raw) {
-      return { error: 'Prices for all four sizes (A6, A5, A4, A3) are required.' };
+    const tierResult = parseAndValidateSizeTierPrices(formData);
+    if (!tierResult.valid) {
+      return { error: tierResult.error };
     }
+    const { sizeTierMap } = tierResult;
+    const tierA4 = sizeTierMap.A4;
 
-    const priceA6 = parseFloat(priceA6Raw);
-    const priceA5 = parseFloat(priceA5Raw);
-    const priceA4 = parseFloat(priceA4Raw);
-    const priceA3 = parseFloat(priceA3Raw);
-
-    if (
-      isNaN(priceA6) || priceA6 < 0 ||
-      isNaN(priceA5) || priceA5 < 0 ||
-      isNaN(priceA4) || priceA4 < 0 ||
-      isNaN(priceA3) || priceA3 < 0
-    ) {
-      return { error: 'All size prices must be valid non-negative numbers.' };
-    }
-
-    const sizePriceMap: Record<string, number> = {
-      A6: priceA6,
-      A5: priceA5,
-      A4: priceA4,
-      A3: priceA3,
-    };
-
-    // Base price defaults to A4 price if not explicitly provided
-    const price = priceRaw ? parseFloat(priceRaw) : priceA4;
-    const MRP = MRPRaw ? parseFloat(MRPRaw) : price;
+    // Product-level A4 summary fields default to A4 Three-Tier prices
+    const price = priceRaw ? parseFloat(priceRaw) : tierA4.baseSellingPrice;
+    const MRP = MRPRaw ? parseFloat(MRPRaw) : tierA4.retailMrp;
+    const diwaliPrice = diwaliPriceRaw ? parseFloat(diwaliPriceRaw) : tierA4.diwaliSellingPrice;
     const discount = discountRaw ? parseFloat(discountRaw) : 0;
     const stock = parseInt(stockRaw, 10);
 
-    if (isNaN(price) || price < 0) return { error: 'Price must be a valid non-negative number.' };
-    if (isNaN(MRP) || MRP < 0) return { error: 'MRP must be a valid non-negative number.' };
+    if (isNaN(price) || price <= 0) return { error: 'Base Selling Price must be a valid positive number.' };
+    if (isNaN(MRP) || MRP <= 0) return { error: 'Retail MRP must be a valid positive number.' };
+    if (isNaN(diwaliPrice) || diwaliPrice <= 0) return { error: 'Diwali Selling Price must be a valid positive number.' };
     if (isNaN(discount) || discount < 0 || discount > 100) return { error: 'Discount must be between 0 and 100.' };
     if (isNaN(stock) || stock < 0) return { error: 'Stock must be a valid non-negative integer.' };
 
@@ -173,6 +202,9 @@ export async function createProductAction(prevState: unknown, formData: FormData
     const variantRecords: Array<{
       sizeId: string;
       price: number;
+      retailMrp: number;
+      baseSellingPrice: number;
+      diwaliSellingPrice: number;
       additionalPrice: number;
       stock: number;
       SKU: string;
@@ -181,11 +213,14 @@ export async function createProductAction(prevState: unknown, formData: FormData
     }> = sizes.map((size) => {
       const cleanedSize = size.name.replace(/\s+/g, '');
       const variantSKU = `${SKU}-${cleanedSize}`.replace(/[^a-zA-Z0-9-]/g, '');
-      const variantPrice = sizePriceMap[size.name] ?? price;
+      const tier = sizeTierMap[size.name] ?? tierA4;
 
       return {
         sizeId: size.id,
-        price: variantPrice,
+        price: tier.baseSellingPrice,
+        retailMrp: tier.retailMrp,
+        baseSellingPrice: tier.baseSellingPrice,
+        diwaliSellingPrice: tier.diwaliSellingPrice,
         additionalPrice: 0,
         stock, // sync initial stock
         SKU: variantSKU,
@@ -202,8 +237,9 @@ export async function createProductAction(prevState: unknown, formData: FormData
           title,
           slug,
           description,
-          price,
-          MRP,
+          price: tierA4.baseSellingPrice,
+          MRP: tierA4.retailMrp,
+          diwaliPrice: tierA4.diwaliSellingPrice,
           discount,
           SKU,
           featured,
@@ -250,6 +286,9 @@ export async function createProductAction(prevState: unknown, formData: FormData
   }
 
   revalidatePath('/');
+  revalidatePath('/search');
+  revalidatePath('/cart');
+  revalidatePath('/checkout');
   revalidatePath('/admin/products');
   redirect('/admin/products');
 }
@@ -267,6 +306,7 @@ export async function updateProductAction(prevState: unknown, formData: FormData
     const description = formData.get('description') as string;
     const priceRaw = formData.get('price') as string;
     const MRPRaw = formData.get('MRP') as string;
+    const diwaliPriceRaw = formData.get('diwaliPrice') as string;
     const discountRaw = formData.get('discount') as string;
     const SKU = formData.get('SKU') as string;
     const categoryId = formData.get('categoryId') as string;
@@ -276,58 +316,48 @@ export async function updateProductAction(prevState: unknown, formData: FormData
     const featured = formData.get('featured') === 'true';
     const trending = formData.get('trending') === 'true';
 
-    // Size prices
-    const priceA6Raw = formData.get('price_A6') as string;
-    const priceA5Raw = formData.get('price_A5') as string;
-    const priceA4Raw = formData.get('price_A4') as string;
-    const priceA3Raw = formData.get('price_A3') as string;
-
     if (!id || !title || !description || !SKU || !categoryId || !stockRaw) {
       return { error: 'All fields are required.' };
     }
 
-    if (!priceA6Raw || !priceA5Raw || !priceA4Raw || !priceA3Raw) {
-      return { error: 'Prices for all four sizes (A6, A5, A4, A3) are required.' };
+    const tierResult = parseAndValidateSizeTierPrices(formData);
+    if (!tierResult.valid) {
+      return { error: tierResult.error };
     }
-
-    const priceA6 = parseFloat(priceA6Raw);
-    const priceA5 = parseFloat(priceA5Raw);
-    const priceA4 = parseFloat(priceA4Raw);
-    const priceA3 = parseFloat(priceA3Raw);
-
-    if (
-      isNaN(priceA6) || priceA6 < 0 ||
-      isNaN(priceA5) || priceA5 < 0 ||
-      isNaN(priceA4) || priceA4 < 0 ||
-      isNaN(priceA3) || priceA3 < 0
-    ) {
-      return { error: 'All size prices must be valid non-negative numbers.' };
-    }
-
-    const sizePriceMap: Record<string, number> = {
-      A6: priceA6,
-      A5: priceA5,
-      A4: priceA4,
-      A3: priceA3,
-    };
+    const { sizeTierMap } = tierResult;
+    const tierA4 = sizeTierMap.A4;
 
     const existingProduct = await prisma.product.findUnique({
       where: { id },
-      select: { price: true },
+      select: { price: true, MRP: true, diwaliPrice: true },
     });
-    const parsedPriceInput = priceRaw ? parseFloat(priceRaw) : priceA4;
-    // If the administrator updated price_A4 and left the base `price` field unchanged from its previous value,
-    // synchronize `product.price` with `priceA4` so the A4 regular price and Product.price stay consistent.
+
+    const parsedPriceInput = priceRaw ? parseFloat(priceRaw) : tierA4.baseSellingPrice;
     const price =
-      existingProduct && parsedPriceInput === existingProduct.price && priceA4 !== existingProduct.price
-        ? priceA4
+      existingProduct && parsedPriceInput === existingProduct.price && tierA4.baseSellingPrice !== existingProduct.price
+        ? tierA4.baseSellingPrice
+        : formData.has('mrp_A4')
+        ? tierA4.baseSellingPrice
         : parsedPriceInput;
-    const MRP = MRPRaw ? parseFloat(MRPRaw) : price;
+
+    const MRP = formData.has('mrp_A4')
+      ? tierA4.retailMrp
+      : MRPRaw
+      ? Math.max(price, parseFloat(MRPRaw))
+      : tierA4.retailMrp;
+
+    const diwaliPrice = formData.has('diwali_A4')
+      ? tierA4.diwaliSellingPrice
+      : diwaliPriceRaw
+      ? Math.min(price, parseFloat(diwaliPriceRaw))
+      : tierA4.diwaliSellingPrice;
+
     const discount = discountRaw ? parseFloat(discountRaw) : 0;
     const stock = parseInt(stockRaw, 10);
 
-    if (isNaN(price) || price < 0) return { error: 'Price must be a valid non-negative number.' };
-    if (isNaN(MRP) || MRP < 0) return { error: 'MRP must be a valid non-negative number.' };
+    if (isNaN(price) || price <= 0) return { error: 'Base Selling Price must be a valid positive number.' };
+    if (isNaN(MRP) || MRP <= 0) return { error: 'Retail MRP must be a valid positive number.' };
+    if (isNaN(diwaliPrice) || diwaliPrice <= 0) return { error: 'Diwali Selling Price must be a valid positive number.' };
     if (isNaN(discount) || discount < 0 || discount > 100) return { error: 'Discount must be between 0 and 100.' };
     if (isNaN(stock) || stock < 0) return { error: 'Stock must be a valid non-negative integer.' };
 
@@ -375,6 +405,7 @@ export async function updateProductAction(prevState: unknown, formData: FormData
           description,
           price,
           MRP,
+          diwaliPrice,
           discount,
           SKU,
           active,
@@ -390,15 +421,15 @@ export async function updateProductAction(prevState: unknown, formData: FormData
         data: { quantity: stock },
       });
 
-      // 3. Sync stock and size-specific prices to variants for THIS product only
+      // 3. Sync stock and size-specific Three-Tier prices to variants for THIS product only
       const VALID_SIZES = ['A3', 'A4', 'A5', 'A6'];
       const dbSizes = await tx.productSize.findMany({
         where: { name: { in: VALID_SIZES } },
       });
 
       for (const size of dbSizes) {
-        const newSizePrice = sizePriceMap[size.name];
-        if (newSizePrice === undefined) continue;
+        const tier = sizeTierMap[size.name];
+        if (!tier) continue;
 
         const existingVariants = await tx.productVariant.findMany({
           where: { productId: id, sizeId: size.id },
@@ -408,7 +439,10 @@ export async function updateProductAction(prevState: unknown, formData: FormData
           await tx.productVariant.updateMany({
             where: { productId: id, sizeId: size.id },
             data: {
-              price: newSizePrice,
+              price: tier.baseSellingPrice,
+              retailMrp: tier.retailMrp,
+              baseSellingPrice: tier.baseSellingPrice,
+              diwaliSellingPrice: tier.diwaliSellingPrice,
               stock,
             },
           });
@@ -419,7 +453,10 @@ export async function updateProductAction(prevState: unknown, formData: FormData
             data: {
               productId: id,
               sizeId: size.id,
-              price: newSizePrice,
+              price: tier.baseSellingPrice,
+              retailMrp: tier.retailMrp,
+              baseSellingPrice: tier.baseSellingPrice,
+              diwaliSellingPrice: tier.diwaliSellingPrice,
               additionalPrice: 0,
               stock,
               SKU: variantSKU,
@@ -450,6 +487,9 @@ export async function updateProductAction(prevState: unknown, formData: FormData
   }
 
   revalidatePath('/');
+  revalidatePath('/search');
+  revalidatePath('/cart');
+  revalidatePath('/checkout');
   revalidatePath(`/product/${slug}`);
   revalidatePath(`/product/${id}`);
   revalidatePath('/admin/products');

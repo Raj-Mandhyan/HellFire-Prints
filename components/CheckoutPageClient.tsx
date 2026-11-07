@@ -29,9 +29,11 @@ interface CartSummaryItem {
   frameName: string;
   paperType: string;
   quantity: number;
+  retailMrpUnitPrice?: number;
   originalUnitPrice?: number;
   diwaliUnitPrice?: number;
   unitPrice: number;
+  retailMrpLineTotal?: number;
   originalLineTotal?: number;
   lineTotal: number;
 }
@@ -40,8 +42,10 @@ interface CheckoutPageClientProps {
   savedAddresses: SavedAddress[];
   calculations: {
     items: CartSummaryItem[];
+    retailMrpSubtotal?: number;
     originalSubtotal?: number;
     diwaliDiscount?: number;
+    mrpSavings?: number;
     subtotal: number;
     discount?: number;
     totalSavings?: number;
@@ -657,6 +661,7 @@ export default function CheckoutPageClient({
               <div className="space-y-4.5 max-h-[260px] overflow-y-auto pr-1">
                 {calculations.items.map((item) => {
                   const origUnit = item.originalUnitPrice || item.unitPrice;
+                  const mrpUnit = item.retailMrpUnitPrice || Math.max(origUnit, item.unitPrice);
                   const diwaliUnit = item.diwaliUnitPrice || item.unitPrice;
                   const displayUnit = isSaleActive ? diwaliUnit : origUnit;
                   const displayLine = displayUnit * item.quantity;
@@ -673,10 +678,16 @@ export default function CheckoutPageClient({
                           <span className="text-[9px] text-neutral-500 uppercase tracking-widest font-bold block mt-0.5">
                             {item.frameName && item.frameName !== 'No Frame' ? `${item.sizeName} (${item.frameName})` : item.sizeName} × {item.quantity}
                           </span>
-                          {isSaleActive && origUnit > diwaliUnit && (
+                          {isSaleActive && origUnit > diwaliUnit ? (
                             <span className="text-[8.5px] font-black uppercase tracking-widest text-[#FFD700] block mt-0.5">
-                              <span className="line-through text-neutral-500 mr-1">₹{origUnit}</span>
+                              <span className="line-through text-neutral-500 mr-1">MRP ₹{mrpUnit}</span>
+                              <span className="line-through text-neutral-400 mr-1">Base ₹{origUnit}</span>
                               → ₹{diwaliUnit} each
+                            </span>
+                          ) : (
+                            <span className="text-[8.5px] font-bold uppercase tracking-widest text-neutral-400 block mt-0.5">
+                              <span className="line-through text-neutral-500 mr-1">MRP ₹{mrpUnit}</span>
+                              → ₹{origUnit} each
                             </span>
                           )}
                         </div>
@@ -696,8 +707,16 @@ export default function CheckoutPageClient({
 
               {/* Calculations Breakdown */}
               <div className="space-y-3.5 text-xs font-extrabold uppercase tracking-widest border-t border-neutral-900 pt-5">
+                {calculations.retailMrpSubtotal ? (
+                  <div className="flex justify-between">
+                    <span className="text-neutral-500">Retail MRP Subtotal</span>
+                    <span className="font-mono line-through text-neutral-500">
+                      ₹{calculations.retailMrpSubtotal.toFixed(2)}
+                    </span>
+                  </div>
+                ) : null}
                 <div className="flex justify-between">
-                  <span className="text-neutral-500">Original Price Subtotal</span>
+                  <span className="text-neutral-500">Base Selling Subtotal</span>
                   <span className={`font-mono ${isSaleActive && diwaliDiscount > 0 ? 'line-through text-neutral-500' : 'text-white'}`}>
                     ₹{originalSubtotal.toFixed(2)}
                   </span>

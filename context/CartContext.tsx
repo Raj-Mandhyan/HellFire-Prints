@@ -19,9 +19,11 @@ export interface CartItem {
   frameName: string;
   paperType: string;
   quantity: number;
+  retailMrpUnitPrice?: number;
   originalUnitPrice?: number;
   diwaliUnitPrice?: number;
   unitPrice: number;
+  retailMrpLineTotal?: number;
   originalLineTotal?: number;
   lineTotal: number;
   lineSavings?: number;
@@ -31,8 +33,10 @@ export interface CartItem {
 
 interface Cart {
   items: CartItem[];
+  retailMrpSubtotal?: number;
   originalSubtotal?: number;
   diwaliDiscount?: number;
+  mrpSavings?: number;
   subtotal: number;
   quantityDiscount?: number;
   couponDiscount?: number;

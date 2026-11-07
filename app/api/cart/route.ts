@@ -77,8 +77,10 @@ export async function GET() {
     if (!cart || !cart.items.length) {
       return NextResponse.json({
         items: [],
+        retailMrpSubtotal: 0,
         originalSubtotal: 0,
         diwaliDiscount: 0,
+        mrpSavings: 0,
         subtotal: 0,
         totalSavings: 0,
         total: 0,
@@ -91,6 +93,7 @@ export async function GET() {
 
     const items = cart.items.map((item) => {
       let unitPrice = 0;
+      let retailMrpUnitPrice = 0;
       let originalUnitPrice = 0;
       let diwaliUnitPrice = 0;
       let productName = item.product.title;
@@ -106,6 +109,7 @@ export async function GET() {
         sizeName = item.customPoster.sizeName || 'A4';
         const customPricing = getSizePricing(sizeName, now);
         unitPrice = customPricing.effectivePrice;
+        retailMrpUnitPrice = customPricing.retailMrp;
         originalUnitPrice = customPricing.originalPrice;
         diwaliUnitPrice = customPricing.diwaliPrice;
         productName = `Custom Poster Print`;
@@ -116,13 +120,22 @@ export async function GET() {
         stock = 9999;
         SKU = `HFP-CUST-${sizeName}-${paperType.substring(0, 3).toUpperCase()}`.replace(/\s+/g, '');
       } else {
-        const variantPricing = getVariantPricing(item.variant, item.product.price, now);
+        const variantPricing = getVariantPricing(
+          item.variant,
+          item.product.price,
+          now,
+          undefined,
+          item.product.MRP,
+          item.product.diwaliPrice
+        );
         unitPrice = variantPricing.effectivePrice;
+        retailMrpUnitPrice = variantPricing.retailMrp;
         originalUnitPrice = variantPricing.originalPrice;
         diwaliUnitPrice = variantPricing.diwaliPrice;
       }
 
       const lineTotal = unitPrice * item.quantity;
+      const retailMrpLineTotal = retailMrpUnitPrice * item.quantity;
       const originalLineTotal = originalUnitPrice * item.quantity;
       const lineSavings = Math.max(0, originalLineTotal - lineTotal);
 
@@ -140,9 +153,11 @@ export async function GET() {
         frameName,
         paperType,
         quantity: item.quantity,
+        retailMrpUnitPrice,
         originalUnitPrice,
         diwaliUnitPrice,
         unitPrice,
+        retailMrpLineTotal,
         originalLineTotal,
         lineTotal,
         lineSavings,
@@ -156,8 +171,10 @@ export async function GET() {
     return NextResponse.json({
       id: cart.id,
       items,
+      retailMrpSubtotal: breakdown.retailMrpSubtotal,
       originalSubtotal: breakdown.originalSubtotal,
       diwaliDiscount: breakdown.diwaliDiscount,
+      mrpSavings: breakdown.mrpSavings,
       subtotal: breakdown.subtotal,
       quantityDiscount: breakdown.quantityDiscount,
       couponDiscount: breakdown.couponDiscount,
