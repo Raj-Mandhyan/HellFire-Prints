@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import {
   DIWALI_OFFER_TIMEZONE,
   DIWALI_OFFER_START_ISO,
+  DIWALI_OFFER_START_UTC_ISO,
   DIWALI_OFFER_END_ISO,
   DIWALI_OFFER_END_UTC_ISO,
   DIWALI_OFFER_START_MS,
@@ -14,10 +15,11 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 /**
- * Authoritative Server Time Endpoint for HellFire Prints Diwali Sale 2026.
+ * Authoritative Server Time Endpoint for HellFire Prints Grand Diwali Extended Offer 2026.
  * Returns the live server UTC timestamp, epoch milliseconds, IST formatted timestamp,
- * and authoritative Diwali campaign status & countdown against the fixed deadline:
- *   2026-11-09T04:00:00+05:30 (2026-11-08T22:30:00Z)
+ * and authoritative Diwali Extended Offer campaign status & countdown against:
+ *   Start: 2026-11-12T13:00:00+05:30 (2026-11-12T07:30:00Z)
+ *   End:   2026-11-14T13:00:00+05:30 (2026-11-14T07:30:00Z)
  */
 export async function GET() {
   const now = new Date();
@@ -32,6 +34,7 @@ export async function GET() {
       utcOffset: '+05:30',
       campaign: {
         startIso: DIWALI_OFFER_START_ISO,
+        startUtcIso: DIWALI_OFFER_START_UTC_ISO,
         endIso: DIWALI_OFFER_END_ISO,
         endUtcIso: DIWALI_OFFER_END_UTC_ISO,
         startTimestampMs: DIWALI_OFFER_START_MS,

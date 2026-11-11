@@ -16,7 +16,6 @@ export interface CartItem {
   configuration?: unknown;
   orientation?: string | null;
   sizeName: string;
-  frameName: string;
   paperType: string;
   quantity: number;
   retailMrpUnitPrice?: number;
@@ -213,8 +212,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Authoritative IST campaign status & automatic cart refresh on campaign expiration
+  // Authoritative IST campaign status & automatic cart refresh on campaign activation/expiration
   const { status: liveOfferStatus } = useAuthoritativeDiwaliStatus({
+    onActivate: () => {
+      refreshCart();
+    },
     onExpire: () => {
       refreshCart();
     },

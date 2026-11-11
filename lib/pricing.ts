@@ -71,20 +71,22 @@ export const DEFAULT_SIZE_PRICES: Record<string, number> = {
 export const MINIMUM_ORDER_VALUE = 30;
 
 /**
- * Strict Diwali Offer Validity Window in Asia/Kolkata (IST, UTC+05:30)
- * Start: 6 November 2026 — 8:00 PM IST
- * End:   Monday, 9 November 2026 — 4:00 AM IST (2026-11-08T22:30:00Z UTC)
+ * Strict Grand Diwali Extended Offer 2026 Validity Window in Asia/Kolkata (IST, UTC+05:30)
+ * Start: 12 November 2026 — 1:00 PM IST (2026-11-12T07:30:00Z UTC)
+ * End:   14 November 2026 — 1:00 PM IST (2026-11-14T07:30:00Z UTC)
+ * Duration: 48 Hours
  */
 export const DIWALI_OFFER_TIMEZONE = 'Asia/Kolkata';
-export const DIWALI_OFFER_START_ISO = '2026-11-06T20:00:00+05:30';
-export const DIWALI_OFFER_END_ISO = '2026-11-09T04:00:00+05:30';
-export const DIWALI_OFFER_END_UTC_ISO = '2026-11-08T22:30:00Z';
+export const DIWALI_OFFER_START_ISO = '2026-11-12T13:00:00+05:30';
+export const DIWALI_OFFER_START_UTC_ISO = '2026-11-12T07:30:00Z';
+export const DIWALI_OFFER_END_ISO = '2026-11-14T13:00:00+05:30';
+export const DIWALI_OFFER_END_UTC_ISO = '2026-11-14T07:30:00Z';
 
 export const DIWALI_OFFER_START_MS = Date.parse(DIWALI_OFFER_START_ISO);
 export const DIWALI_OFFER_END_MS = Date.parse(DIWALI_OFFER_END_ISO);
 
-export const DIWALI_OFFER_START_DISPLAY = '6 November 2026 — 8:00 PM IST';
-export const DIWALI_OFFER_END_DISPLAY = 'Monday, 9 November 2026 — 4:00 AM IST';
+export const DIWALI_OFFER_START_DISPLAY = '12 November 2026 — 1:00 PM IST';
+export const DIWALI_OFFER_END_DISPLAY = '14 November 2026 — 1:00 PM IST';
 
 export interface ThreeTierPriceValues {
   retailMrp: number;
@@ -276,10 +278,51 @@ export function getDiwaliOfferStatus(now: Date = new Date()): DiwaliOfferStatus 
 }
 
 /**
- * Returns true ONLY during the valid offer window (6 Nov 2026 8:00 PM IST to 9 Nov 2026 4:00 AM IST)
+ * Returns true ONLY during the valid Grand Diwali Extended Offer window
+ * (12 Nov 2026 1:00 PM IST to 14 Nov 2026 1:00 PM IST)
  */
 export function isDiwaliOfferActive(now: Date = new Date()): boolean {
   return getDiwaliOfferStatus(now).isActive;
+}
+
+/**
+ * Validates that a customer cart/checkout/custom-poster payload does not attempt
+ * to select or apply any frame option, since HellFire Prints sells posters strictly without frames.
+ */
+export function validateNoFrameSelection(input: {
+  frameId?: unknown;
+  frameName?: unknown;
+  frame?: unknown;
+}): { valid: boolean; error?: string } {
+  const hasFrameId =
+    typeof input.frameId === 'string'
+      ? input.frameId.trim().length > 0
+      : input.frameId !== undefined && input.frameId !== null;
+
+  const normalizedFrameName =
+    typeof input.frameName === 'string' ? input.frameName.trim() : '';
+  const hasSelectedFrameName =
+    normalizedFrameName.length > 0 &&
+    normalizedFrameName.toLowerCase() !== 'no frame' &&
+    normalizedFrameName.toLowerCase() !== 'none';
+
+  const hasFrameObject =
+    input.frame !== undefined &&
+    input.frame !== null &&
+    (typeof input.frame === 'string'
+      ? input.frame.trim().length > 0 &&
+        input.frame.trim().toLowerCase() !== 'no frame' &&
+        input.frame.trim().toLowerCase() !== 'none'
+      : true);
+
+  if (hasFrameId || hasSelectedFrameName || hasFrameObject) {
+    return {
+      valid: false,
+      error: 'Frame options are no longer available. All HellFire Prints posters are sold without frames.',
+    };
+  }
+
+  return { valid: true };
 }
 
 export interface SizePricingDetails {
@@ -509,14 +552,12 @@ export interface VariantLike {
     name?: string;
     additionalPrice?: number;
   } | null;
-  frame?: {
-    additionalPrice?: number;
-  } | null;
 }
 
 /**
  * Resolves full Three-Tier pricing details (retailMrp, baseSellingPrice, diwaliSellingPrice, effectivePrice, savings)
  * for a product variant. Respects administrator-customized prices stored on the variant or product.
+ * Strictly excludes any frame surcharges as posters are sold without frames.
  */
 export function getVariantPricing(
   variant: VariantLike | null | undefined,
@@ -556,7 +597,7 @@ export function getVariantPricing(
     });
   }
 
-  // Fallback for any custom or legacy non-standard size
+  // Fallback for any custom or legacy non-standard size (strictly without frame charges)
   let fallbackBase = isPositiveNumber(fallbackProductPrice)
     ? fallbackProductPrice
     : BASE_SELLING_SIZE_PRICES.A4;
@@ -568,7 +609,6 @@ export function getVariantPricing(
     fallbackBase =
       fallbackBase +
       (variant.size?.additionalPrice || 0) +
-      (variant.frame?.additionalPrice || 0) +
       (variant.additionalPrice || 0);
   }
 

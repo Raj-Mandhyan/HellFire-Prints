@@ -85,7 +85,6 @@ export async function initiatePaymentAction(
             variant: {
               include: {
                 size: true,
-                frame: true,
               },
             },
             customPoster: true,
@@ -114,7 +113,7 @@ export async function initiatePaymentAction(
 
       if (variant.stock < item.quantity) {
         return {
-          error: `Insufficient stock for "${product.title}" - Size ${variant.size?.name || ''} (${variant.frame?.name || ''}). Only ${variant.stock} units left.`,
+          error: `Insufficient stock for "${product.title}" - Size ${variant.size?.name || ''}. Only ${variant.stock} units left.`,
         };
       }
     }
@@ -218,7 +217,7 @@ export async function initiatePaymentAction(
           quantity: item.quantity,
           sizeName: item.customPoster.sizeName,
           sizeDimensions: "",
-          frameName: item.customPoster.frameName,
+          frameName: null,
           paperType: item.customPoster.paperType,
         };
       } else {
@@ -242,7 +241,7 @@ export async function initiatePaymentAction(
           quantity: item.quantity,
           sizeName: item.variant?.size?.name || 'A4',
           sizeDimensions: item.variant?.size?.dimensions || '',
-          frameName: item.variant?.frame?.name || null,
+          frameName: null,
           paperType: item.variant?.paperType || null,
         };
       }
@@ -361,7 +360,6 @@ export async function placeCodOrderAction(
             variant: {
               include: {
                 size: true,
-                frame: true,
               },
             },
             customPoster: true,
@@ -390,7 +388,7 @@ export async function placeCodOrderAction(
 
       if (variant.stock < item.quantity) {
         return {
-          error: `Insufficient stock for "${product.title}" - Size ${variant.size?.name || ''} (${variant.frame?.name || ''}). Only ${variant.stock} units left.`,
+          error: `Insufficient stock for "${product.title}" - Size ${variant.size?.name || ''}. Only ${variant.stock} units left.`,
         };
       }
     }
@@ -491,7 +489,7 @@ export async function placeCodOrderAction(
           quantity: item.quantity,
           sizeName: item.customPoster.sizeName,
           sizeDimensions: '',
-          frameName: item.customPoster.frameName,
+          frameName: null,
           paperType: item.customPoster.paperType,
         };
       } else {
@@ -515,7 +513,7 @@ export async function placeCodOrderAction(
           quantity: item.quantity,
           sizeName: item.variant?.size?.name || 'A4',
           sizeDimensions: item.variant?.size?.dimensions || '',
-          frameName: item.variant?.frame?.name || null,
+          frameName: null,
           paperType: item.variant?.paperType || null,
         };
       }
@@ -550,7 +548,6 @@ export async function placeCodOrderAction(
           where: { id: item.variantId },
           include: {
             size: true,
-            frame: true,
           },
         });
 
@@ -560,7 +557,7 @@ export async function placeCodOrderAction(
 
         if (variant.stock < item.quantity) {
           throw new Error(
-            `Insufficient stock for "${item.product.title}" - Size ${variant.size?.name || ''} (${variant.frame?.name || ''}). Only ${variant.stock} units left.`
+            `Insufficient stock for "${item.product.title}" - Size ${variant.size?.name || ''}. Only ${variant.stock} units left.`
           );
         }
 
@@ -786,7 +783,6 @@ export async function processSuccessfulPayment(
           where: { id: item.variantId },
           include: {
             size: true,
-            frame: true,
           },
         });
 
@@ -796,7 +792,7 @@ export async function processSuccessfulPayment(
 
         if (variant.stock < item.quantity) {
           throw new Error(
-            `Insufficient stock for "${item.title}" - Size ${variant.size?.name || ''} (${variant.frame?.name || ''}). Only ${variant.stock} units left.`
+            `Insufficient stock for "${item.title}" - Size ${variant.size?.name || ''}. Only ${variant.stock} units left.`
           );
         }
 

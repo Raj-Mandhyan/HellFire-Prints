@@ -51,13 +51,14 @@ export function ProductCard({ product }: ProductCardProps) {
 
   const effectivePhase = previewPhase ?? liveOfferStatus.phase;
   const isExpired = effectivePhase === 'EXPIRED';
+  const isOfferActive = effectivePhase === 'ACTIVE';
   const a4Variant = product.variants?.find((v) => v.size?.name === 'A4');
   const a6Variant = product.variants?.find((v) => v.size?.name === 'A6');
   const a4Pricing = getVariantPricing(
     a4Variant,
     product.price,
     new Date(DIWALI_OFFER_START_MS),
-    isExpired ? 'EXPIRED' : 'ACTIVE',
+    effectivePhase,
     product.MRP,
     product.diwaliPrice
   );
@@ -65,7 +66,7 @@ export function ProductCard({ product }: ProductCardProps) {
     a6Variant,
     ORIGINAL_SIZE_PRICES.A6,
     new Date(DIWALI_OFFER_START_MS),
-    isExpired ? 'EXPIRED' : 'ACTIVE'
+    effectivePhase
   );
 
   const images = useMemo(() => {
@@ -276,8 +277,8 @@ export function ProductCard({ product }: ProductCardProps) {
         </div>
 
         <div className="flex items-end justify-between pt-3 border-t border-neutral-900/80">
-          {/* Prices (A4 Three-Tier Showcase during Diwali, Two-Tier when Expired) */}
-          {!isExpired ? (
+        {/*Prices (A4 Three-Tier Showcase during Diwali Active, Upcoming Preview, Two-Tier when Expired) */}
+          {isOfferActive ? (
             <div className="flex flex-col animate-price-pop">
               <div className="flex items-center gap-2 text-[10px] font-mono">
                 <span className="text-neutral-500">
@@ -307,7 +308,32 @@ export function ProductCard({ product }: ProductCardProps) {
                   SAVE ₹{a4Pricing.savings}
                 </span>
                 <span className="text-[9px] text-amber-300/80 font-bold uppercase tracking-wider">
-                  Diwali Offer
+                  Extended Offer
+                </span>
+              </div>
+            </div>
+          ) : !isExpired ? (
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2 text-[10px] font-mono">
+                <span className="text-neutral-500">
+                  MRP{' '}
+                  <span className="line-through decoration-neutral-500 font-bold text-neutral-400">
+                    ₹{a4Pricing.retailMrp}
+                  </span>
+                </span>
+                <span className="text-lg font-mono font-black text-white leading-none">
+                  ₹{a4Pricing.baseSellingPrice}
+                </span>
+                <span className="text-[9px] font-mono font-bold text-neutral-400 uppercase">
+                  (A4)
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 mt-1">
+                <span className="text-[9px] font-black uppercase tracking-wider text-[#FFD700] bg-amber-950/60 border border-[#FFD700]/40 px-1.5 py-0.5 rounded">
+                  DIWALI OFFER: ₹{a4Pricing.diwaliSellingPrice}
+                </span>
+                <span className="text-[9px] text-amber-300/80 font-bold uppercase tracking-wider">
+                  Starts 12 Nov
                 </span>
               </div>
             </div>

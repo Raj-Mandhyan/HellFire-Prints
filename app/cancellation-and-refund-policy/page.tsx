@@ -44,11 +44,11 @@ export default function CancellationAndRefundPolicy() {
               1. Order Cancellation
             </h2>
             <p>
-              Because our posters are printed and custom-framed to order, our capacity for cancellations depends on the status of your order:
+              Because our posters are printed to order, our capacity for cancellations depends on the status of your order:
             </p>
             <ul className="list-disc pl-5 space-y-2 text-xs sm:text-sm">
               <li>
-                <strong>Standard Catalog Prints:</strong> You can request a cancellation within <strong>2 hours</strong> of placing your order or before production has started (whichever is earlier). Once a poster is printed or framed, the order enters packaging and cannot be cancelled.
+                <strong>Standard Catalog Prints:</strong> You can request a cancellation within <strong>2 hours</strong> of placing your order or before production has started (whichever is earlier). Once a poster is printed, the order enters packaging and cannot be cancelled.
               </li>
               <li>
                 <strong>Custom Studio Prints:</strong> Since custom uploads enter our automated prepress and print queues almost immediately after checkout, <strong>no cancellations, updates, or modifications are permitted</strong> once the payment is completed.
@@ -67,7 +67,7 @@ export default function CancellationAndRefundPolicy() {
             <ul className="list-disc pl-5 space-y-1.5 text-xs sm:text-sm">
               <li>The package arrives visibly damaged, crushed, or torn.</li>
               <li>The print displays severe manufacturing defects (e.g. alignment issues, extreme ink smudges, incorrect sizing).</li>
-              <li>The wrong items (wrong poster design, incorrect frame choice, or wrong size) were delivered.</li>
+              <li>The wrong items (wrong poster design or wrong size) were delivered.</li>
             </ul>
           </section>
 
@@ -103,7 +103,7 @@ export default function CancellationAndRefundPolicy() {
             </p>
             <ul className="list-disc pl-5 space-y-2 text-xs sm:text-sm">
               <li>
-                <strong>Free Replacement (Recommended):</strong> We will reprint and frame a brand-new copy of the poster and dispatch it to your original address at no additional shipping fee.
+                <strong>Free Replacement (Recommended):</strong> We will reprint a brand-new copy of the poster and dispatch it to your original address at no additional shipping fee.
               </li>
               <li>
                 <strong>Full Refund:</strong> We will initiate a refund for the full amount paid (including proportional tax and shipping fees) back to your original payment method.

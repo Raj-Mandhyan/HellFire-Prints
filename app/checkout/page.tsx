@@ -32,7 +32,6 @@ export default async function CheckoutPage() {
           variant: {
             include: {
               size: true,
-              frame: true,
             },
           },
           customPoster: true,
@@ -85,12 +84,10 @@ export default async function CheckoutPage() {
     let productName = item.product.title;
     let productImage = item.product.images?.[0]?.url || '';
     let sizeName = item.variant?.size?.name || 'A4';
-    let frameName = item.variant?.frame?.name || '';
     let paperType = item.variant?.paperType || '';
 
     if (item.customPosterId && item.customPoster) {
       sizeName = item.customPoster.sizeName;
-      frameName = item.customPoster.frameName;
       paperType = item.customPoster.paperType;
       const customPricing = getSizePricing(sizeName, now);
       retailMrpUnitPrice = customPricing.retailMrp;
@@ -123,7 +120,6 @@ export default async function CheckoutPage() {
       productName,
       productImage,
       sizeName,
-      frameName,
       paperType,
       quantity: item.quantity,
       retailMrpUnitPrice,

@@ -27,6 +27,9 @@ export default function DiwaliHeroSection({ initialServerTimeMs }: DiwaliHeroSec
   const { previewPhase, refreshCart } = useCart();
   const { status: liveStatus, isSynced } = useAuthoritativeDiwaliStatus({
     initialServerTimeMs,
+    onActivate: () => {
+      refreshCart();
+    },
     onExpire: () => {
       refreshCart();
     },
@@ -75,8 +78,8 @@ export default function DiwaliHeroSection({ initialServerTimeMs }: DiwaliHeroSec
         <div className="flex flex-wrap items-center justify-center gap-3">
           <div className="inline-flex items-center gap-2.5 bg-gradient-to-r from-[#1E070B] via-[#2A0B12] to-[#1E070B] border border-[#FFD700]/45 px-4 sm:px-5 py-2 rounded-full shadow-[0_0_25px_rgba(255,215,0,0.2)] backdrop-blur-md">
             <Sparkles className="w-4 h-4 text-[#FFD700] animate-spin" style={{ animationDuration: '6s' }} />
-            <span className="text-[10px] sm:text-xs font-black uppercase tracking-[0.25em] text-[#FFD700]">
-              HELLFIRE PRINTS PRESENTS
+            <span className="text-[10px] sm:text-xs font-black uppercase tracking-[0.22em] text-[#FFD700]">
+              HELLFIRE PRINTS PRESENTS: THE GRAND DIWALI EXTENDED OFFER 2026
             </span>
             <Flame className="w-4 h-4 text-[#FF7B00] animate-pulse" />
           </div>
@@ -87,8 +90,28 @@ export default function DiwaliHeroSection({ initialServerTimeMs }: DiwaliHeroSec
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400" />
               </span>
-              <span className="text-[10px] sm:text-xs font-mono font-black uppercase tracking-[0.2em] text-emerald-300">
-                ● DIWALI SALE — LIVE NOW
+              <span className="text-[10px] sm:text-xs font-mono font-black uppercase tracking-[0.18em] text-emerald-300">
+                ● THE DIWALI EXTENDED SALE IS LIVE NOW!
+              </span>
+            </div>
+          )}
+
+          {isUpcomingView && (
+            <div className="inline-flex items-center gap-2 bg-amber-950/80 border border-amber-400/50 px-4 py-2 rounded-full shadow-[0_0_20px_rgba(251,191,36,0.25)] backdrop-blur-md">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-400" />
+              </span>
+              <span className="text-[10px] sm:text-xs font-mono font-black uppercase tracking-[0.18em] text-amber-300">
+                ● 48-HOUR EXTENDED OFFER • STARTING SOON
+              </span>
+            </div>
+          )}
+
+          {isExpiredView && (
+            <div className="inline-flex items-center gap-2 bg-neutral-900/90 border border-neutral-700 px-4 py-2 rounded-full">
+              <span className="text-[10px] sm:text-xs font-mono font-black uppercase tracking-[0.18em] text-neutral-400">
+                THE DIWALI EXTENDED OFFER HAS ENDED
               </span>
             </div>
           )}
@@ -110,30 +133,34 @@ export default function DiwaliHeroSection({ initialServerTimeMs }: DiwaliHeroSec
           </div>
 
           <div className="space-y-3 sm:space-y-4 max-w-4xl">
-            {isActiveView && (
-              <p className="text-xs sm:text-sm font-black uppercase tracking-[0.28em] text-[#FFD700] diwali-gold-text-glow">
-                DIWALI SALE IS LIVE NOW!
-              </p>
-            )}
+            <p className="text-xs sm:text-base font-black uppercase tracking-[0.3em] text-[#FFD700] diwali-gold-text-glow">
+              YOU ASKED. WE LISTENED.
+            </p>
 
             <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-tighter uppercase leading-[0.95] text-white">
-              THE GRAND{' '}
+              THE{' '}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FFD700] via-[#FF9E00] to-[#FF4D4D] diwali-gold-text-glow">
                 DIWALI SALE
               </span>{' '}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00E5FF] via-[#FFD700] to-[#FCBF49]">
-                2026
+                IS BACK!
               </span>
             </h1>
 
-            <p className="text-base sm:text-xl md:text-2xl font-extrabold tracking-wide text-amber-100/95">
-              Light Up Your Walls.{' '}
-              <span className="text-[#FFD700]">Celebrate Every Moment.</span>
+            <p className="text-sm sm:text-lg md:text-xl font-bold tracking-wide text-amber-100/95 max-w-3xl mx-auto leading-relaxed">
+              On overwhelming requests and demand from our customers, we&apos;re bringing back the Diwali Sale with a{' '}
+              <span className="text-[#FFD700] font-black">SPECIAL EXTENDED OFFER!</span>
             </p>
 
-            <p className="text-xs sm:text-sm text-neutral-200 max-w-2xl mx-auto font-semibold leading-relaxed">
-              Enjoy exclusive festive prices on your favourite posters. Experience ultra-high-contrast 300 GSM archival wall prints engineered for next-gen setups, gaming battlestations, and modern spaces.
+            <p className="text-base sm:text-xl font-extrabold text-white tracking-wide">
+              You missed it once. <span className="text-[#FF9E00]">Don&apos;t miss it again.</span>
             </p>
+
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-[#C1121F]/30 via-[#FF7B00]/25 to-[#FFD700]/30 border border-[#FFD700]/45">
+              <span className="text-[11px] sm:text-xs font-black uppercase tracking-[0.22em] text-[#FFD700]">
+                48 HOURS. EXCLUSIVE FESTIVE PRICES. ONE LAST CHANCE.
+              </span>
+            </div>
           </div>
 
           <div className="hidden md:flex flex-col items-center">
@@ -157,14 +184,10 @@ export default function DiwaliHeroSection({ initialServerTimeMs }: DiwaliHeroSec
           <div className="flex flex-col lg:flex-row items-center justify-between gap-3 border-b border-amber-500/15 pb-4 text-xs">
             <div className="flex items-center gap-2 bg-emerald-950/60 border border-emerald-500/40 px-3.5 py-2 rounded-xl">
               <span className="px-2 py-0.5 rounded-md bg-emerald-500 text-black text-[9px] font-black uppercase tracking-widest">
-                LIVE STATUS
+                OFFER START
               </span>
               <span className="text-emerald-200 font-mono font-bold text-[11px] sm:text-xs">
-                {isActiveView
-                  ? '● DIWALI SALE — LIVE NOW'
-                  : isUpcomingView
-                  ? `Starts ${DIWALI_OFFER_START_DISPLAY}`
-                  : 'Campaign Ended'}
+                {DIWALI_OFFER_START_DISPLAY}
               </span>
             </div>
 
@@ -180,7 +203,7 @@ export default function DiwaliHeroSection({ initialServerTimeMs }: DiwaliHeroSec
 
             <div className="flex items-center gap-2 bg-rose-950/60 border border-rose-500/50 px-3.5 py-2 rounded-xl shadow-[0_0_15px_rgba(244,63,94,0.15)]">
               <span className="px-2 py-0.5 rounded-md bg-rose-600 text-white text-[9px] font-black uppercase tracking-widest">
-                FINAL DEADLINE
+                OFFER ENDS
               </span>
               <span className="text-rose-100 font-mono font-bold text-[11px] sm:text-xs">
                 {DIWALI_OFFER_END_DISPLAY}
@@ -202,10 +225,10 @@ export default function DiwaliHeroSection({ initialServerTimeMs }: DiwaliHeroSec
               />
               <span className="text-xs sm:text-sm font-black uppercase tracking-[0.24em] text-[#FFD700] diwali-gold-text-glow">
                 {isActiveView
-                  ? 'DIWALI OFFER ENDS IN'
+                  ? 'THE DIWALI EXTENDED SALE IS LIVE NOW! • DIWALI EXTENDED OFFER ENDS IN'
                   : isUpcomingView
-                  ? 'UPCOMING OFFER • DIWALI SALE STARTS IN'
-                  : 'DIWALI SALE 2026 HAS ENDED'}
+                  ? 'THE EXTENDED DIWALI OFFER STARTS IN'
+                  : 'THE DIWALI EXTENDED OFFER HAS ENDED'}
               </span>
             </div>
 
@@ -247,18 +270,22 @@ export default function DiwaliHeroSection({ initialServerTimeMs }: DiwaliHeroSec
             {!isExpiredView ? (
               <div className="pt-3 border-t border-amber-500/15 space-y-1.5 text-center">
                 <p className="text-xs sm:text-sm font-black uppercase tracking-[0.18em] text-[#FFD700]">
-                  {isActiveView ? 'THE FESTIVE OFFER IS LIVE!' : 'GET YOUR WISHLIST READY!'}
+                  {isActiveView
+                    ? 'THE DIWALI EXTENDED SALE IS LIVE NOW!'
+                    : '48 HOURS • EXCLUSIVE FESTIVE PRICES • ONE LAST CHANCE'}
                 </p>
                 <p className="text-xs sm:text-sm text-neutral-200 font-medium">
-                  Only limited time left to grab your favourite posters at exclusive Diwali prices.
+                  {isActiveView
+                    ? 'Grab your favourite posters at exclusive Diwali Extended Offer prices before the 48-hour window closes!'
+                    : 'Extended festive prices unlock automatically on 12 November 2026 at 1:00 PM IST.'}
                 </p>
                 <p className="text-[11px] sm:text-xs font-mono font-bold text-amber-300">
-                  Offer ends Monday, 9 November, 4:00 AM IST.
+                  Offer Start: {DIWALI_OFFER_START_DISPLAY} • Offer Ends: {DIWALI_OFFER_END_DISPLAY}
                 </p>
               </div>
             ) : (
               <div className="py-3.5 px-6 bg-neutral-900/75 border border-neutral-800 rounded-2xl text-xs sm:text-sm font-bold text-neutral-300 uppercase tracking-wider">
-                The promotional window (Ended Monday, 9 November 2026 — 4:00 AM IST) has expired. Standard catalog prices are now active.
+                The 48-hour Grand Diwali Extended Offer (Ended {DIWALI_OFFER_END_DISPLAY}) has ended. Base Selling Prices are now active.
               </div>
             )}
           </div>
@@ -356,7 +383,7 @@ export default function DiwaliHeroSection({ initialServerTimeMs }: DiwaliHeroSec
                             Additional Diwali Savings: ₹{card.savings} ({card.discountPercentage}% OFF)
                           </span>
                           <span className="text-[9px] font-mono font-bold text-amber-300/80 uppercase">
-                            {isUpcomingView ? 'Starts 6 Nov' : 'Diwali Offer'}
+                            {isUpcomingView ? 'Starts 12 Nov, 1 PM' : 'Extended Offer'}
                           </span>
                         </div>
                       </div>
@@ -393,7 +420,7 @@ export default function DiwaliHeroSection({ initialServerTimeMs }: DiwaliHeroSec
             href="#catalog"
             className="w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-gradient-to-r from-[#C1121F] via-[#FF7B00] to-[#FFD700] text-black px-9 py-4 rounded-2xl font-black uppercase text-xs sm:text-sm tracking-widest transition-all duration-300 hover:scale-105 active:scale-95 diwali-button-glow cursor-pointer"
           >
-            <span>SHOP DIWALI SALE NOW</span>
+            <span>SHOP NOW</span>
             <ArrowRight className="w-4 h-4" />
           </a>
 

@@ -66,7 +66,7 @@ export default function TermsAndConditions() {
             <p>
               Hellfire Prints sells premium physical poster prints. This includes standard catalog posters (gaming, anime, supercars, etc.) 
               and custom poster configurations designed using our online custom builder studio. All posters are manufactured to order 
-              using selected premium paper sizes, frames, and high-definition print engines.
+              using selected premium archival paper sizes and high-definition print engines.
             </p>
           </section>
 
@@ -75,7 +75,7 @@ export default function TermsAndConditions() {
               4. Product Information and Pricing
             </h2>
             <p>
-              We strive to display our poster prints, dimensions, paper quality, frames, and prices as accurately as possible. 
+              We strive to display our poster prints, dimensions, paper quality, and prices as accurately as possible. 
               However, colors and details shown on screen may differ slightly from the physical printed item due to device display configurations. 
               All prices listed on the website are in Indian Rupees (INR), inclusive of relevant taxes unless stated otherwise, and subject to change without notice.
             </p>
@@ -164,7 +164,7 @@ export default function TermsAndConditions() {
               12. Cancellation, Returns and Refunds
             </h2>
             <p>
-              Because posters are printed and framed dynamically based on user selections, we do not accept change-of-mind cancellations or returns. 
+              Because posters are printed dynamically based on user selections, we do not accept change-of-mind cancellations or returns. 
               Orders can only be cancelled before production has commenced. Custom poster orders enter production immediately and cannot be cancelled.
             </p>
           </section>

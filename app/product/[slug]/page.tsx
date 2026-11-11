@@ -28,7 +28,6 @@ export default async function ProductPage({ params }: ProductPageProps) {
         variants: {
           include: {
             size: true,
-            frame: true,
           },
         },
       },

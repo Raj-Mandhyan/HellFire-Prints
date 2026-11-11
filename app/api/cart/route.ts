@@ -8,6 +8,7 @@ import {
   getVariantPricing,
   getSizePricing,
   getDiwaliOfferStatus,
+  validateNoFrameSelection,
   MINIMUM_ORDER_VALUE,
 } from '@/lib/pricing';
 
@@ -36,7 +37,6 @@ export async function GET() {
               variant: {
                 include: {
                   size: true,
-                  frame: true,
                 },
               },
               customPoster: true,
@@ -63,7 +63,6 @@ export async function GET() {
                 variant: {
                   include: {
                     size: true,
-                    frame: true,
                   },
                 },
                 customPoster: true,
@@ -100,7 +99,6 @@ export async function GET() {
       let productSlug = item.product.slug;
       let productImage = item.product.images?.[0]?.url || '';
       let sizeName = item.variant?.size?.name || 'A4';
-      let frameName = item.variant?.frame?.name || '';
       let paperType = item.variant?.paperType || '';
       let stock = item.variant?.stock || 0;
       let SKU = item.variant?.SKU || item.product.SKU;
@@ -115,7 +113,6 @@ export async function GET() {
         productName = `Custom Poster Print`;
         productSlug = 'custom-poster';
         productImage = item.customPoster.imageUrl;
-        frameName = item.customPoster.frameName;
         paperType = item.customPoster.paperType;
         stock = 9999;
         SKU = `HFP-CUST-${sizeName}-${paperType.substring(0, 3).toUpperCase()}`.replace(/\s+/g, '');
@@ -150,7 +147,6 @@ export async function GET() {
         configuration: item.customPoster?.configuration || null,
         orientation: item.customPoster?.orientation || null,
         sizeName,
-        frameName,
         paperType,
         quantity: item.quantity,
         retailMrpUnitPrice,
@@ -206,6 +202,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Quantity must be at least 1.' }, { status: 400 });
     }
 
+    // Reject any obsolete frame selection payloads (posters are sold strictly without frames)
+    const topLevelFrameCheck = validateNoFrameSelection({
+      frameId: body.frameId,
+      frameName: body.frameName,
+      frame: body.frame,
+    });
+    if (!topLevelFrameCheck.valid) {
+      return NextResponse.json({ error: topLevelFrameCheck.error }, { status: 400 });
+    }
+    if (customPoster) {
+      const customFrameCheck = validateNoFrameSelection({
+        frameId: customPoster.frameId,
+        frameName: customPoster.frameName,
+        frame: customPoster.frame,
+      });
+      if (!customFrameCheck.valid) {
+        return NextResponse.json({ error: customFrameCheck.error }, { status: 400 });
+      }
+    }
+
     let finalProductId = productId;
     let customPosterId: string | null = null;
 
@@ -238,12 +254,11 @@ export async function POST(req: NextRequest) {
       }
       finalProductId = baseProduct.id;
 
-      // Secure pricing recalculation on the server against current IST offer window
+      // Secure pricing recalculation on the server against current IST offer window (strictly frameless)
       const calculatedPrice = calculateCustomPosterPrice(
         {
           sizeName: customPoster.sizeName,
           paperType: customPoster.paperType,
-          frameName: customPoster.frameName,
         },
         now
       );
@@ -256,7 +271,7 @@ export async function POST(req: NextRequest) {
             imageUrl: customPoster.imageUrl,
             orientation: customPoster.orientation || 'PORTRAIT',
             sizeName: customPoster.sizeName || 'A4',
-            frameName: customPoster.frameName || 'No Frame',
+            frameName: '',
             paperType: customPoster.paperType || 'Matte',
             price: calculatedPrice,
             configuration: customPoster.configuration || null,
@@ -282,7 +297,7 @@ export async function POST(req: NextRequest) {
             imageUrl: customPoster.imageUrl,
             orientation: customPoster.orientation || 'PORTRAIT',
             sizeName: customPoster.sizeName || 'A4',
-            frameName: customPoster.frameName || 'No Frame',
+            frameName: '',
             paperType: customPoster.paperType || 'Matte',
             price: calculatedPrice,
             configuration: customPoster.configuration || null,

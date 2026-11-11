@@ -123,17 +123,20 @@ export async function syncAuthoritativeClock(force = false): Promise<number> {
 
 export interface UseAuthoritativeDiwaliStatusOptions {
   initialServerTimeMs?: number;
+  onActivate?: () => void;
   onExpire?: () => void;
 }
 
 /**
- * Hook that continuously computes the authoritative Diwali Offer status & countdown
- * against 9 November 2026, 4:00:00 AM IST (`2026-11-09T04:00:00+05:30` / `2026-11-08T22:30:00Z`).
+ * Hook that continuously computes the authoritative Grand Diwali Extended Offer status & countdown
+ * against:
+ *   Start: 12 November 2026, 1:00:00 PM IST (`2026-11-12T13:00:00+05:30` / `2026-11-12T07:30:00Z`)
+ *   End:   14 November 2026, 1:00:00 PM IST (`2026-11-14T13:00:00+05:30` / `2026-11-14T07:30:00Z`)
  *
  * Features:
  * - Seeds offset immediately from SSR `initialServerTimeMs` or `sessionStorage` so page refresh & route changes never jump.
  * - Synchronizes with `/api/time` on mount, every 60s, and whenever the browser tab regains visibility/focus.
- * - Updates every 1 second and triggers `onExpire` immediately when transitioning from ACTIVE to EXPIRED.
+ * - Updates every 1 second and triggers `onActivate` / `onExpire` immediately on phase transitions.
  */
 export function useAuthoritativeDiwaliStatus(
   options: UseAuthoritativeDiwaliStatusOptions = {}
@@ -143,12 +146,14 @@ export function useAuthoritativeDiwaliStatus(
   offsetMs: number;
   resync: () => Promise<void>;
 } {
-  const { initialServerTimeMs, onExpire } = options;
+  const { initialServerTimeMs, onActivate, onExpire } = options;
+  const onActivateRef = useRef(onActivate);
   const onExpireRef = useRef(onExpire);
 
   useEffect(() => {
+    onActivateRef.current = onActivate;
     onExpireRef.current = onExpire;
-  }, [onExpire]);
+  }, [onActivate, onExpire]);
 
   // Deterministic initial reference timestamp so SSR and initial client hydration always match 100%
   const initialReferenceMs =
@@ -169,7 +174,10 @@ export function useAuthoritativeDiwaliStatus(
     const nextStatus = getDiwaliOfferStatus(getAuthoritativeNow(initialServerTimeMs));
     setStatus(nextStatus);
 
-    if (prevPhaseRef.current === 'ACTIVE' && nextStatus.phase === 'EXPIRED') {
+    if (prevPhaseRef.current === 'UPCOMING' && nextStatus.phase === 'ACTIVE') {
+      prevPhaseRef.current = 'ACTIVE';
+      onActivateRef.current?.();
+    } else if (prevPhaseRef.current === 'ACTIVE' && nextStatus.phase === 'EXPIRED') {
       prevPhaseRef.current = 'EXPIRED';
       onExpireRef.current?.();
     } else {

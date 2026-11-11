@@ -40,10 +40,10 @@ async function main() {
   // -------------------------------------------------------------------------
   console.log('--- 1. Fixed Campaign Deadline & IST Timezone Verification ---');
   assert(
-    DIWALI_OFFER_END_ISO === '2026-11-09T04:00:00+05:30' &&
-      DIWALI_OFFER_END_UTC_ISO === '2026-11-08T22:30:00Z' &&
-      DIWALI_OFFER_END_MS === Date.parse('2026-11-08T22:30:00Z'),
-    'Fixed deadline is 2026-11-09T04:00:00+05:30 (2026-11-08T22:30:00Z UTC)',
+    DIWALI_OFFER_END_ISO === '2026-11-14T13:00:00+05:30' &&
+      DIWALI_OFFER_END_UTC_ISO === '2026-11-14T07:30:00Z' &&
+      DIWALI_OFFER_END_MS === Date.parse('2026-11-14T07:30:00Z'),
+    'Fixed deadline is 2026-11-14T13:00:00+05:30 (2026-11-14T07:30:00Z UTC)',
     `endMs=${DIWALI_OFFER_END_MS}, display="${DIWALI_OFFER_END_DISPLAY}"`
   );
 

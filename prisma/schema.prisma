@@ -385,7 +385,7 @@ model CustomPoster {
   publicId    String?             // Cloudinary asset public ID
   orientation Orientation         @default(PORTRAIT)
   sizeName    String
-  frameName   String
+  frameName   String?             @default("")
   paperType   String
   price         Float
   configuration Json?

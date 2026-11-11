@@ -26,7 +26,6 @@ interface CartSummaryItem {
   productName: string;
   productImage: string;
   sizeName: string;
-  frameName: string;
   paperType: string;
   quantity: number;
   retailMrpUnitPrice?: number;
@@ -676,7 +675,7 @@ export default function CheckoutPageClient({
                         <div>
                           <span className="font-extrabold text-xs text-white uppercase truncate block tracking-wide">{item.productName}</span>
                           <span className="text-[9px] text-neutral-500 uppercase tracking-widest font-bold block mt-0.5">
-                            {item.frameName && item.frameName !== 'No Frame' ? `${item.sizeName} (${item.frameName})` : item.sizeName} × {item.quantity}
+                            {item.sizeName} × {item.quantity}
                           </span>
                           {isSaleActive && origUnit > diwaliUnit ? (
                             <span className="text-[8.5px] font-black uppercase tracking-widest text-[#FFD700] block mt-0.5">
@@ -786,7 +785,7 @@ export default function CheckoutPageClient({
                 <div className="p-3 bg-amber-950/20 border border-amber-900/50 rounded-2xl flex items-center gap-2 text-[9.5px] font-bold text-amber-300 leading-relaxed">
                   <Clock className="w-3.5 h-3.5 text-[#FFD700] shrink-0" />
                   <span>
-                    Diwali Offer (A3 ₹32, A4 ₹16, A5 ₹8, A6 ₹4) activates on 6 Nov 2026, 8:00 PM IST.
+                    The 48-hour Grand Diwali Extended Offer (A3 ₹32, A4 ₹16, A5 ₹8, A6 ₹4) activates on 12 Nov 2026, 1:00 PM IST.
                   </span>
                 </div>
               )}

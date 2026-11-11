@@ -15,7 +15,7 @@ import {
   Upload, ShoppingBag, ArrowLeft, Info, Type, Settings, Crop,
   Undo2, Redo2, RotateCcw, Save, Trash2, Layers, Sparkles, Check,
   Loader2, Bold, Italic, AlignLeft, AlignCenter, AlignRight,
-  Eye, Monitor, Frame, Image as ImageIcon, CheckCircle2, ChevronRight,
+  Eye, Monitor, Image as ImageIcon, CheckCircle2, ChevronRight,
   Maximize2, RefreshCw, ZoomIn, Compass, ShieldCheck
 } from 'lucide-react';
 import Image from 'next/image';
@@ -82,10 +82,9 @@ function ConfiguratorContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Builder configurations
+  // Builder configurations (strictly frameless standalone posters)
   const [sizeName, setSizeName] = useState<string>('A4');
   const [paperType, setPaperType] = useState<string>('Matte');
-  const [frameName, setFrameName] = useState<string>('No Frame');
   const [orientation, setOrientation] = useState<'PORTRAIT' | 'LANDSCAPE'>('PORTRAIT');
   const [quantity, setQuantity] = useState<number>(1);
   const [viewMode, setViewMode] = useState<'canvas' | 'gallery'>('canvas');
@@ -305,7 +304,6 @@ function ConfiguratorContent() {
               setCustomPosterId(item.customPosterId);
               setSizeName(item.sizeName);
               setPaperType(item.paperType);
-              setFrameName(item.frameName);
               if (item.orientation) {
                 setOrientation(item.orientation);
               }
@@ -356,16 +354,17 @@ function ConfiguratorContent() {
     loadSavedDesigns();
   }, []);
 
-  // Pricing calculations synchronized with backend & Diwali Offer
+  // Pricing calculations synchronized with backend & Grand Diwali Extended Offer
   const { previewPhase, liveOfferStatus } = useCart();
   const effectivePhase = previewPhase ?? liveOfferStatus.phase;
   const isExpired = effectivePhase === 'EXPIRED';
+  const isOfferActive = effectivePhase === 'ACTIVE';
 
   const priceBreakdown = useMemo(() => {
     const details = getCustomPosterPricingDetails(
       sizeName,
       new Date(DIWALI_OFFER_START_MS),
-      isExpired ? 'EXPIRED' : 'ACTIVE'
+      effectivePhase
     );
     const unitPrice = details.effectivePrice;
     return {
@@ -376,10 +375,11 @@ function ConfiguratorContent() {
       retailMrpTotal: details.retailMrp * quantity,
       originalTotal: details.originalPrice * quantity,
       total: unitPrice * quantity,
-      totalSavings: details.savings * quantity,
+      totalSavings: details.activeDiscount * quantity,
+      isOfferActive,
       isExpired,
     };
-  }, [sizeName, quantity, isExpired]);
+  }, [sizeName, quantity, effectivePhase, isOfferActive, isExpired]);
 
   // Load a curated starter preset image onto canvas
   const handleLoadPreset = (preset: typeof CURATED_PRESETS[0]) => {
@@ -756,7 +756,6 @@ function ConfiguratorContent() {
             imageUrl: previewUrl,
             orientation,
             sizeName,
-            frameName,
             paperType,
             configuration,
           }
@@ -1095,14 +1094,8 @@ function ConfiguratorContent() {
               </>
             )}
 
-            {/* Poster Physical Presentation Frame */}
-            <div className={`relative transition-all duration-500 ${
-              frameName === 'Obsidian Frame'
-                ? 'p-4 bg-[#111116] border-4 border-[#22222b] shadow-[0_20px_50px_rgba(0,0,0,0.8)] rounded-sm'
-                : frameName === 'Chrome Frame'
-                ? 'p-3 bg-[#cbd5e1] border-2 border-white shadow-[0_20px_50px_rgba(0,0,0,0.8)] rounded-sm'
-                : 'cyber-canvas-glow rounded-lg'
-            }`}>
+            {/* Frameless Archival Poster Canvas */}
+            <div className="relative transition-all duration-500 cyber-canvas-glow rounded-lg">
               {/* Actual Canvas */}
               <canvas ref={canvasRef} className="rounded-md overflow-hidden block shadow-2xl" />
 
@@ -1497,7 +1490,7 @@ function ConfiguratorContent() {
                         >
                           <div className="flex justify-between items-center mb-1">
                             <span className="text-sm font-black text-white">{size.name}</span>
-                            {!isExpired ? (
+                            {isOfferActive ? (
                               <div className="flex items-baseline gap-1.5 font-mono">
                                 <span className="text-[11px] text-[#91A4C7] line-through decoration-[#FF4D4D]">
                                   ₹{size.originalPrice}
@@ -1507,50 +1500,32 @@ function ConfiguratorContent() {
                                 </span>
                               </div>
                             ) : (
-                              <span className="text-sm font-black text-[#00E5FF]">₹{size.originalPrice}</span>
+                              <div className="flex items-baseline gap-1.5 font-mono">
+                                <span className="text-[11px] text-[#91A4C7] line-through">
+                                  ₹{size.retailMrp}
+                                </span>
+                                <span className="text-sm font-black text-[#00E5FF]">₹{size.originalPrice}</span>
+                              </div>
                             )}
                           </div>
                           <div className="flex items-center justify-between">
                             <span className="text-[10px] font-mono text-[#91A4C7]">{size.dimensions}</span>
-                            {!isExpired && (
+                            {isOfferActive ? (
                               <span className="text-[8.5px] font-mono font-black text-emerald-400 uppercase">
                                 SAVE ₹{size.savings}
                               </span>
-                            )}
+                            ) : !isExpired ? (
+                              <span className="text-[8.5px] font-mono font-black text-amber-300 uppercase">
+                                DIWALI: ₹{size.diwaliPrice}
+                              </span>
+                            ) : null}
                           </div>
                           <div className="text-[9px] font-mono text-[#B9F4FF]/70 mt-1 uppercase">
-                            {size.name === 'A3' ? 'Statement Wall Print' : size.name === 'A4' ? 'Standard Frame (Popular)' : size.name === 'A5' ? 'Desk Stand Art' : 'Mini Art Card'}
+                            {size.name === 'A3' ? 'Statement Wall Print' : size.name === 'A4' ? 'Standard Wall Print (Popular)' : size.name === 'A5' ? 'Desk Stand Art' : 'Mini Art Card'}
                           </div>
                         </button>
                       );
                     })}
-                  </div>
-                </div>
-
-                {/* Frame Style Preview Selection */}
-                <div className="space-y-2 pt-2 border-t border-[#287BFF]/20">
-                  <label className="text-[10px] font-mono text-[#91A4C7] uppercase font-bold tracking-wider">
-                    Presentation Frame (Gallery Mockup)
-                  </label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {[
-                      { name: 'No Frame', label: 'Frameless' },
-                      { name: 'Obsidian Frame', label: 'Obsidian Matte' },
-                      { name: 'Chrome Frame', label: 'Chrome Edge' },
-                    ].map((f) => (
-                      <button
-                        key={f.name}
-                        type="button"
-                        onClick={() => setFrameName(f.name)}
-                        className={`p-2.5 rounded-xl border text-center text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${
-                          frameName === f.name
-                            ? 'border-[#00E5FF] bg-[#287BFF]/20 text-white shadow-[0_0_12px_rgba(0,229,255,0.2)]'
-                            : 'border-[#287BFF]/20 bg-[#101A33]/40 text-[#91A4C7] hover:text-white'
-                        }`}
-                      >
-                        {f.label}
-                      </button>
-                    ))}
                   </div>
                 </div>
 
@@ -1809,8 +1784,8 @@ function ConfiguratorContent() {
                 <span className="text-white font-bold">{orientation}</span>
               </div>
               <div className="flex justify-between text-[#91A4C7]">
-                <span>Festive Unit Price</span>
-                {!priceBreakdown.isExpired ? (
+                <span>Unit Price</span>
+                {priceBreakdown.isOfferActive ? (
                   <span className="font-bold">
                     <span className="text-[#91A4C7]/70 line-through mr-1.5 text-[10px]">
                       MRP ₹{priceBreakdown.retailMrpUnitPrice}
@@ -1829,7 +1804,7 @@ function ConfiguratorContent() {
                   </span>
                 )}
               </div>
-              {!priceBreakdown.isExpired && (
+              {priceBreakdown.isOfferActive && (
                 <div className="flex justify-between text-emerald-400">
                   <span>Diwali Savings</span>
                   <span className="font-bold">-₹{priceBreakdown.totalSavings}</span>
@@ -1860,9 +1835,11 @@ function ConfiguratorContent() {
               </div>
 
               <div className="text-right">
-                <div className="text-[10px] font-mono text-[#91A4C7] uppercase">Diwali Subtotal</div>
+                <div className="text-[10px] font-mono text-[#91A4C7] uppercase">
+                  {priceBreakdown.isOfferActive ? 'Diwali Subtotal' : 'Subtotal'}
+                </div>
                 <div className="flex items-baseline gap-2 justify-end">
-                  {!priceBreakdown.isExpired && (
+                  {priceBreakdown.isOfferActive && (
                     <span className="text-xs font-mono text-[#91A4C7] line-through">
                       ₹{priceBreakdown.originalTotal}
                     </span>

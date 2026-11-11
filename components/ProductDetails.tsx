@@ -36,7 +36,6 @@ type ProductWithRelations = Prisma.ProductGetPayload<{
     variants: {
       include: {
         size: true;
-        frame: true;
       };
     };
   };
@@ -74,6 +73,8 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
 
   const effectivePhase = previewPhase ?? liveOfferStatus.phase;
   const isExpired = effectivePhase === 'EXPIRED';
+  const isUpcoming = effectivePhase === 'UPCOMING';
+  const isOfferActive = effectivePhase === 'ACTIVE';
 
   // Gallery active index state
   const [activeImageIndex, setActiveImageIndex] = useState(0);
@@ -273,12 +274,12 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
           v,
           product.price,
           new Date(DIWALI_OFFER_START_MS),
-          isExpired ? 'EXPIRED' : 'ACTIVE',
+          effectivePhase,
           product.MRP,
           product.diwaliPrice
         );
         const existing = map.get(v.size.id);
-        if (!existing || !v.frameId) {
+        if (!existing) {
           map.set(v.size.id, {
             id: v.size.id,
             name: v.size.name,
@@ -299,7 +300,7 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
     return Array.from(map.values()).sort(
       (a, b) => ALLOWED_SIZES.indexOf(a.name) - ALLOWED_SIZES.indexOf(b.name)
     );
-  }, [product.variants, product.price, product.MRP, product.diwaliPrice, isExpired, ALLOWED_SIZES, SIZE_DISPLAY_DIMENSIONS]);
+  }, [product.variants, product.price, product.MRP, product.diwaliPrice, effectivePhase, ALLOWED_SIZES, SIZE_DISPLAY_DIMENSIONS]);
 
   // Default size: prioritize A4, fallback to first available size
   const defaultSizeId = useMemo(() => {
@@ -323,21 +324,15 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
   const [isAdding, setIsAdding] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // Find the exact matching variant based on user selection
+  // Find the exact matching variant based on user size selection (posters are sold strictly without frames)
   const selectedVariant = useMemo(() => {
     const matching = product.variants.filter((v) => v.sizeId === selectedSizeId);
     if (matching.length === 0) return undefined;
     if (matching.length === 1) return matching[0];
 
-    return (
-      matching.find(
-        (v) =>
-          !v.frameId ||
-          v.frame?.name?.toLowerCase().includes('no frame') ||
-          v.frame?.name?.toLowerCase().includes('unframed')
-      ) ||
-      [...matching].sort((a, b) => getVariantUnitPrice(a, product.price) - getVariantUnitPrice(b, product.price))[0]
-    );
+    return [...matching].sort(
+      (a, b) => getVariantUnitPrice(a, product.price) - getVariantUnitPrice(b, product.price)
+    )[0];
   }, [product.variants, product.price, selectedSizeId]);
 
   // Resolved size pricing for currently selected size
@@ -346,11 +341,11 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
       selectedVariant,
       product.price,
       new Date(DIWALI_OFFER_START_MS),
-      isExpired ? 'EXPIRED' : 'ACTIVE',
+      effectivePhase,
       product.MRP,
       product.diwaliPrice
     );
-  }, [selectedVariant, product.price, product.MRP, product.diwaliPrice, isExpired]);
+  }, [selectedVariant, product.price, product.MRP, product.diwaliPrice, effectivePhase]);
 
   // Trigger add to cart
   const handleAddToCart = async () => {
@@ -630,9 +625,9 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
             </div>
           </div>
 
-          {/* Festive Pricing Block (Three-Tier during Diwali, Two-Tier when Expired) */}
+          {/* Festive Pricing Block (Three-Tier during Diwali Active, Upcoming Preview before 12 Nov 1 PM, Two-Tier when Expired) */}
           <div className="bg-gradient-to-b from-[#17090D] to-[#0B0406] p-5 border border-[#FFD700]/35 rounded-2xl shadow-inner space-y-3 relative overflow-hidden">
-            {!isExpired ? (
+            {isOfferActive ? (
               <div className="flex items-center justify-between gap-3 animate-price-pop">
                 <div className="space-y-2">
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-mono">
@@ -664,7 +659,40 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
                     </span>
                   </div>
                   <p className="text-[10px] font-mono font-semibold text-amber-200/85">
-                    🪔 Valid ONLY during Diwali Offer ({DIWALI_OFFER_START_DISPLAY} – {DIWALI_OFFER_END_DISPLAY})
+                    🪔 Valid during the 48-hour Grand Diwali Extended Offer ({DIWALI_OFFER_START_DISPLAY} – {DIWALI_OFFER_END_DISPLAY})
+                  </p>
+                </div>
+                <div className="hidden sm:block shrink-0">
+                  <DiyaLamp size="sm" delayMs={100} />
+                </div>
+              </div>
+            ) : isUpcoming ? (
+              <div className="flex items-center justify-between gap-3 animate-price-pop">
+                <div className="space-y-2">
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-mono">
+                    <span className="text-neutral-400">
+                      Retail MRP:{' '}
+                      <span className="line-through decoration-neutral-500 decoration-2 font-bold text-neutral-300">
+                        ₹{activeSizePricing.retailMrp}
+                      </span>
+                    </span>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-500/20 border border-amber-400/50 text-amber-300 text-[9px] font-black uppercase tracking-widest">
+                      EXTENDED DIWALI OFFER STARTS 12 NOV, 1:00 PM IST
+                    </span>
+                  </div>
+                  <div className="flex items-baseline gap-3 flex-wrap">
+                    <span className="text-xs font-black uppercase tracking-wider text-neutral-200">
+                      Current Selling Price:
+                    </span>
+                    <span className="text-3xl sm:text-4xl font-mono font-black text-white">
+                      ₹{activeSizePricing.baseSellingPrice}
+                    </span>
+                    <span className="bg-amber-950/80 border border-[#FFD700]/45 text-[#FFD700] text-[10px] font-black uppercase px-2.5 py-1 rounded-lg tracking-widest">
+                      Diwali Extended Price: ₹{activeSizePricing.diwaliSellingPrice} (Save ₹{activeSizePricing.savings})
+                    </span>
+                  </div>
+                  <p className="text-[10px] font-mono font-semibold text-amber-200/85">
+                    🪔 ₹{activeSizePricing.diwaliSellingPrice} Extended Offer unlocks {DIWALI_OFFER_START_DISPLAY} – {DIWALI_OFFER_END_DISPLAY}
                   </p>
                 </div>
                 <div className="hidden sm:block shrink-0">
@@ -730,7 +758,7 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
                     >
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-black uppercase tracking-wider text-white">{size.name}</span>
-                        {!isExpired ? (
+                        {isOfferActive ? (
                           <div className="flex items-baseline gap-1.5 font-mono">
                             <span
                               className="text-[10px] text-neutral-500 line-through"
@@ -761,11 +789,15 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
                       </div>
                       <div className="flex items-center justify-between mt-1.5">
                         <span className="text-[10px] text-neutral-400 font-bold">{size.dimensions}</span>
-                        {!isExpired && (
+                        {isOfferActive ? (
                           <span className="text-[8.5px] font-black uppercase tracking-wider text-emerald-400">
                             SAVE ₹{size.savings}
                           </span>
-                        )}
+                        ) : isUpcoming ? (
+                          <span className="text-[8.5px] font-black uppercase tracking-wider text-[#FFD700]">
+                            DIWALI: ₹{size.diwaliSellingPrice}
+                          </span>
+                        ) : null}
                       </div>
                     </button>
                   );

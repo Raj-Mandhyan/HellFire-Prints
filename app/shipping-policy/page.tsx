@@ -44,7 +44,7 @@ export default function ShippingPolicy() {
               1. Order Processing and Production Time
             </h2>
             <p>
-              Every poster from Hellfire Prints is built to order. This means we print, finish, and frame your chosen poster configurations 
+              Every poster from Hellfire Prints is built to order. This means we print and finish your chosen poster configurations 
               after your order is confirmed.
             </p>
             <ul className="list-disc pl-5 space-y-1.5 text-xs sm:text-sm">
@@ -65,7 +65,7 @@ export default function ShippingPolicy() {
               2. Dispatch and Delivery Partner
             </h2>
             <p>
-              Once printing, quality checks, and framing (if ordered) are completed, orders are safely packed in heavy-duty cardboard tubes 
+              Once printing and quality checks are completed, orders are safely packed in heavy-duty cardboard tubes 
               or reinforced flat boxes. Shipments are dispatched via our authorized logistics manager, <strong>Shiprocket</strong>, who coordinates 
               with premium courier networks (including Bluedart, Delhivery, and Xpressbees) to ensure safe handling.
             </p>

@@ -189,10 +189,10 @@ export default function CartPage() {
                         <Sparkles className="w-4 h-4 text-[#FFD700] animate-pulse" />
                         <span>
                           {offerPhase === 'ACTIVE'
-                            ? '🪔 DIWALI OFFER ACTIVE — FESTIVE DISCOUNTS APPLIED'
+                            ? '🪔 THE DIWALI EXTENDED SALE IS LIVE NOW! — FESTIVE DISCOUNTS APPLIED'
                             : offerPhase === 'UPCOMING'
-                            ? '⏳ UPCOMING DIWALI SALE — STARTS 6 NOV, 8:00 PM IST'
-                            : 'DIWALI OFFER ENDED — STANDARD PRICING ACTIVE'}
+                            ? '⏳ THE EXTENDED DIWALI OFFER STARTS 12 NOV, 1:00 PM IST'
+                            : 'THE DIWALI EXTENDED OFFER HAS ENDED — BASE SELLING PRICING ACTIVE'}
                         </span>
                       </div>
                       <span className="text-[10px] font-mono font-bold text-emerald-400 bg-emerald-950/50 border border-emerald-500/30 px-2.5 py-0.5 rounded-full">
@@ -203,15 +203,15 @@ export default function CartPage() {
                     <div className="text-[11px] text-neutral-300 font-semibold leading-relaxed">
                       {offerPhase === 'ACTIVE' ? (
                         <p>
-                          You are saving <span className="text-[#FFD700] font-black">₹{diwaliDiscount.toFixed(0)}</span> with Diwali Promotional Pricing (Valid until {DIWALI_OFFER_END_DISPLAY}).
+                          You are saving <span className="text-[#FFD700] font-black">₹{diwaliDiscount.toFixed(0)}</span> with the 48-hour Grand Diwali Extended Offer (Valid until {DIWALI_OFFER_END_DISPLAY}).
                         </p>
                       ) : offerPhase === 'UPCOMING' ? (
                         <p>
-                          Diwali Promotional Pricing (<span className="text-[#FFD700] font-bold">A3 ₹32, A4 ₹16, A5 ₹8, A6 ₹4</span> — saving you <span className="text-emerald-400 font-bold">₹{potentialDiwaliSavings.toFixed(0)}</span> on these items) unlocks automatically on <span className="text-white font-bold">{DIWALI_OFFER_START_DISPLAY}</span>. Outside the offer window, authoritative original prices apply.
+                          Grand Diwali Extended Offer Pricing (<span className="text-[#FFD700] font-bold">A3 ₹32, A4 ₹16, A5 ₹8, A6 ₹4</span> — saving you <span className="text-emerald-400 font-bold">₹{potentialDiwaliSavings.toFixed(0)}</span> on these items) unlocks automatically on <span className="text-white font-bold">{DIWALI_OFFER_START_DISPLAY}</span>. Outside the 48-hour offer window, Base Selling Prices apply.
                         </p>
                       ) : (
                         <p>
-                          The Diwali promotional window ({DIWALI_OFFER_START_DISPLAY} – {DIWALI_OFFER_END_DISPLAY}) has expired. Original prices have been restored.
+                          The 48-hour Grand Diwali Extended Offer ({DIWALI_OFFER_START_DISPLAY} – {DIWALI_OFFER_END_DISPLAY}) has ended. Base Selling Prices are active.
                         </p>
                       )}
                     </div>

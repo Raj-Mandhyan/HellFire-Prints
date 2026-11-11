@@ -65,7 +65,6 @@ export async function calculateCartTotal(
           variant: {
             include: {
               size: true,
-              frame: true,
             },
           },
           customPoster: true,

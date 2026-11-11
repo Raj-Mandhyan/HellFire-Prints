@@ -166,10 +166,10 @@ export default async function AdminOrderDetailPage({ params }: OrderDetailPagePr
                       </h4>
                       <p className="text-[10px] text-neutral-400 mt-1 uppercase font-medium leading-relaxed">
                         Size: {item.sizeName} {item.sizeDimensions ? `(${item.sizeDimensions})` : ''}
-                        {item.frameName && (
+                        {item.frameName && item.frameName !== 'No Frame' && (
                           <>
                             <br />
-                            Frame: {item.frameName}
+                            Legacy Option: {item.frameName}
                           </>
                         )}
                         {item.paperType && (

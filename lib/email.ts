@@ -104,7 +104,7 @@ function generateOrderEmailHtml(order: OrderWithDetails, address: AddressData, d
           </div>
           <div style="font-size: 13px; color: #64748b; line-height: 1.5;">
             <span><strong>Size:</strong> ${item.sizeName}${item.sizeDimensions ? ` (${item.sizeDimensions})` : ''}</span>
-            ${item.frameName ? `<span style="margin-left: 10px;">• <strong>Frame:</strong> ${item.frameName}</span>` : ''}
+            ${item.frameName && item.frameName !== 'No Frame' ? `<span style="margin-left: 10px;">• <strong>Legacy Option:</strong> ${item.frameName}</span>` : ''}
             ${item.paperType ? `<span style="margin-left: 10px;">• <strong>Paper:</strong> ${item.paperType}</span>` : ''}
           </div>
           ${isCustom && customImageUrl ? `
@@ -394,7 +394,7 @@ function generateOrderEmailText(order: OrderWithDetails, address: AddressData, d
     const isCustom = Boolean(item.customPosterId || item.customPoster);
     let str = `${idx + 1}. ${item.title}${isCustom ? ' [CUSTOM ARTWORK]' : ''}\n`;
     str += `   - Size: ${item.sizeName}${item.sizeDimensions ? ` (${item.sizeDimensions})` : ''}\n`;
-    if (item.frameName) str += `   - Frame: ${item.frameName}\n`;
+    if (item.frameName && item.frameName !== 'No Frame') str += `   - Legacy Option: ${item.frameName}\n`;
     if (item.paperType) str += `   - Paper: ${item.paperType}\n`;
     str += `   - Quantity: ${item.quantity}\n`;
     str += `   - Unit Price: ${formatINR(item.price)}\n`;

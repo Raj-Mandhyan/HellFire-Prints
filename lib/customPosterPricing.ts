@@ -72,18 +72,10 @@ export const PAPER_TYPES = [
   { name: 'Premium Heavyweight', additionalPrice: 0 },
 ];
 
-export const FRAME_OPTIONS = [
-  { name: 'No Frame', additionalPrice: 0 },
-  { name: 'Black Frame', additionalPrice: 0 },
-  { name: 'White Frame', additionalPrice: 0 },
-  { name: 'Wooden Frame', additionalPrice: 0 },
-];
-
 export function calculateCustomPosterPrice(
   config: {
     sizeName: string;
     paperType?: string;
-    frameName?: string;
   },
   now: Date = new Date(),
   overridePhase?: DiwaliOfferPhase

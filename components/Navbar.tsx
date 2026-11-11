@@ -104,8 +104,8 @@ export default function Navbar() {
       }`}>
       <UpdatesStrip
         updates={[
-          `🪔 THE GRAND DIWALI SALE 2026: A3 ₹${DIWALI_SIZE_PRICES.A3} (Was ₹${ORIGINAL_SIZE_PRICES.A3}) • A4 ₹${DIWALI_SIZE_PRICES.A4} (Was ₹${ORIGINAL_SIZE_PRICES.A4}) • A5 ₹${DIWALI_SIZE_PRICES.A5} (Was ₹${ORIGINAL_SIZE_PRICES.A5}) • A6 ₹${DIWALI_SIZE_PRICES.A6} (Was ₹${ORIGINAL_SIZE_PRICES.A6}) — Minimum order value is ₹${MINIMUM_ORDER_VALUE}.`,
-          `✨ VALID 6 NOV 2026 (8:00 PM IST) TO 9 NOV 2026 (4:00 AM IST) —Orders will be placed for a minimum total of Rs. ${MINIMUM_ORDER_VALUE}.`,
+          `🪔 YOU ASKED, WE LISTENED! THE DIWALI SALE IS BACK FOR 48 HOURS ONLY! SHOP NOW AT HELLFIRE PRINTS! — Minimum order value is ₹${MINIMUM_ORDER_VALUE}.`,
+          `✨ THE GRAND DIWALI EXTENDED OFFER 2026: 12 NOV 2026 (1:00 PM IST) TO 14 NOV 2026 (1:00 PM IST) • A3 ₹${DIWALI_SIZE_PRICES.A3} (Was ₹${ORIGINAL_SIZE_PRICES.A3}) • A4 ₹${DIWALI_SIZE_PRICES.A4} (Was ₹${ORIGINAL_SIZE_PRICES.A4}) • A5 ₹${DIWALI_SIZE_PRICES.A5} (Was ₹${ORIGINAL_SIZE_PRICES.A5}) • A6 ₹${DIWALI_SIZE_PRICES.A6} (Was ₹${ORIGINAL_SIZE_PRICES.A6})`,
         ]}
         variant="top-notice"
       />
