@@ -356,10 +356,10 @@ export default function DiwaliHeroSection({ initialServerTimeMs }: DiwaliHeroSec
                             </span>
                           </span>
                           <span className="text-neutral-300">
-                            Base Selling Price:{' '}
+                            Normal Selling Price:{' '}
                             <span
                               className="line-through decoration-[#FF4D4D] decoration-2 font-bold text-amber-200/80"
-                              title={`Base Selling Price: ₹${card.baseSellingPrice}`}
+                              title={`Normal Selling Price: ₹${card.baseSellingPrice}`}
                             >
                               ₹{card.baseSellingPrice}
                             </span>
@@ -368,7 +368,7 @@ export default function DiwaliHeroSection({ initialServerTimeMs }: DiwaliHeroSec
 
                         <div className="flex items-baseline gap-2.5">
                           <span className="text-[10px] font-black uppercase tracking-wider text-amber-300">
-                            Diwali Selling Price:
+                            DIWALI EXTENDED OFFER:
                           </span>
                           <span
                             className="text-3xl sm:text-4xl font-mono font-black text-[#FFD700] drop-shadow-[0_0_12px_rgba(255,215,0,0.4)]"

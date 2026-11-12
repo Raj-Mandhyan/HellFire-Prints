@@ -49,13 +49,13 @@ export const REGULAR_SIZE_PRICES: Record<string, number> = {
 };
 
 /**
- * Tier 3: Authoritative Default Diwali Festival Sale 2026 Selling Prices (in INR ₹) per poster size
+ * Tier 3: Authoritative Default Diwali Extended Offer 2026 Selling Prices (in INR ₹) per poster size
  */
 export const DIWALI_SIZE_PRICES: Record<string, number> = {
-  A3: 32,
-  A4: 16,
-  A5: 8,
-  A6: 4,
+  A3: 40,
+  A4: 20,
+  A5: 10,
+  A6: 5,
 };
 
 /**

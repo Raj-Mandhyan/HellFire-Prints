@@ -79,7 +79,7 @@ export default async function HomePage() {
       <UpdatesStrip updates={ANNOUNCEMENT_UPDATES} />
 
       {/* Festive Diya Section Divider */}
-      <DiyaSectionDivider label="FESTIVE COLLECTION • A3 ₹32 • A4 ₹16 • A5 ₹8 • A6 ₹4" />
+      <DiyaSectionDivider label="FESTIVE COLLECTION • A3 ₹40 • A4 ₹20 • A5 ₹10 • A6 ₹5" />
 
       {/* Main Content Area: Product Catalog */}
       <main className="flex-grow">
@@ -107,7 +107,7 @@ export default async function HomePage() {
                 DESIGN YOUR OWN <span className="text-[#FFD700] diwali-gold-text-glow">MASTERPIECE</span>
               </h2>
               <p className="text-neutral-300 text-xs sm:text-sm font-medium leading-relaxed">
-                Upload your personal photography, digital art, or custom typography. Enjoy full Diwali Sale discounts on custom prints: A6 at ₹4 (~~₹7~~), A5 at ₹8 (~~₹15~~), A4 at ₹16 (~~₹29~~), and A3 at ₹32 (~~₹49~~).
+                Upload your personal photography, digital art, or custom typography. Enjoy full Diwali Sale discounts on custom prints: A6 at ₹5 (~~₹7~~), A5 at ₹10 (~~₹15~~), A4 at ₹20 (~~₹29~~), and A3 at ₹40 (~~₹49~~).
               </p>
             </div>
             <div className="relative z-10 flex items-center gap-4 flex-shrink-0">

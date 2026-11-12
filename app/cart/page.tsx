@@ -207,7 +207,7 @@ export default function CartPage() {
                         </p>
                       ) : offerPhase === 'UPCOMING' ? (
                         <p>
-                          Grand Diwali Extended Offer Pricing (<span className="text-[#FFD700] font-bold">A3 ₹32, A4 ₹16, A5 ₹8, A6 ₹4</span> — saving you <span className="text-emerald-400 font-bold">₹{potentialDiwaliSavings.toFixed(0)}</span> on these items) unlocks automatically on <span className="text-white font-bold">{DIWALI_OFFER_START_DISPLAY}</span>. Outside the 48-hour offer window, Base Selling Prices apply.
+                          Grand Diwali Extended Offer Pricing (<span className="text-[#FFD700] font-bold">A3 ₹40, A4 ₹20, A5 ₹10, A6 ₹5</span> — saving you <span className="text-emerald-400 font-bold">₹{potentialDiwaliSavings.toFixed(0)}</span> on these items) unlocks automatically on <span className="text-white font-bold">{DIWALI_OFFER_START_DISPLAY}</span>. Outside the 48-hour offer window, Base Selling Prices apply.
                         </p>
                       ) : (
                         <p>
@@ -553,7 +553,7 @@ export default function CartPage() {
             <div className="space-y-2">
               <h3 className="text-lg font-black text-white uppercase tracking-wider leading-none">Your Cart is Empty</h3>
               <p className="text-xs text-neutral-400 font-bold uppercase tracking-wider">
-                Explore the Grand Diwali Sale 2026 — Posters starting at just ₹4!
+                Explore the Grand Diwali Extended Offer 2026 — Posters starting at just ₹5!
               </p>
             </div>
             <Link

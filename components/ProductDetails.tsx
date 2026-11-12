@@ -638,18 +638,18 @@ export default function ProductDetails({ product, initialSummary, initialLikesCo
                       </span>
                     </span>
                     <span className="text-neutral-300">
-                      Base Selling Price:{' '}
+                      Normal Selling Price:{' '}
                       <span className="line-through decoration-[#FF4D4D] decoration-2 font-bold text-amber-200/80">
                         ₹{activeSizePricing.baseSellingPrice}
                       </span>
                     </span>
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-gradient-to-r from-[#C1121F] via-[#FF7B00] to-[#FFD700] text-black text-[9px] font-black uppercase tracking-widest">
-                      DIWALI SPECIAL OFFER
+                      DIWALI EXTENDED OFFER
                     </span>
                   </div>
                   <div className="flex items-baseline gap-3 flex-wrap">
                     <span className="text-xs font-black uppercase tracking-wider text-amber-300">
-                      Diwali Selling Price:
+                      DIWALI EXTENDED OFFER:
                     </span>
                     <span className="text-3xl sm:text-4xl font-mono font-black text-[#FFD700] drop-shadow-[0_0_12px_rgba(255,215,0,0.4)]">
                       ₹{activeSizePricing.diwaliSellingPrice}

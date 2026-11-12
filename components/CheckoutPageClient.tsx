@@ -785,7 +785,7 @@ export default function CheckoutPageClient({
                 <div className="p-3 bg-amber-950/20 border border-amber-900/50 rounded-2xl flex items-center gap-2 text-[9.5px] font-bold text-amber-300 leading-relaxed">
                   <Clock className="w-3.5 h-3.5 text-[#FFD700] shrink-0" />
                   <span>
-                    The 48-hour Grand Diwali Extended Offer (A3 ₹32, A4 ₹16, A5 ₹8, A6 ₹4) activates on 12 Nov 2026, 1:00 PM IST.
+                    The 48-hour Grand Diwali Extended Offer (A3 ₹40, A4 ₹20, A5 ₹10, A6 ₹5) activates on 12 Nov 2026, 1:00 PM IST.
                   </span>
                 </div>
               )}

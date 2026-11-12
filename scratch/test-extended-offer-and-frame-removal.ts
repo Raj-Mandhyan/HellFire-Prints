@@ -139,7 +139,7 @@ async function main() {
     size: { name: 'A4', additionalPrice: 0 },
     additionalPrice: 0,
     baseSellingPrice: 29,
-    diwaliSellingPrice: 16,
+    diwaliSellingPrice: 20,
     retailMrp: 49,
   };
   const activeVariantPricing = getVariantPricing(
@@ -157,7 +157,7 @@ async function main() {
     'Frame Removal',
     'No frame charges are added to any order or variant',
     variantsWithFrameCharge === 0 &&
-      activeVariantPricing.effectivePrice === 16 &&
+      activeVariantPricing.effectivePrice === 20 &&
       normalVariantPricing.effectivePrice === 29,
     `Database variants with frameId/additionalPrice=${variantsWithFrameCharge}; A4 active=${activeVariantPricing.effectivePrice}, normal=${normalVariantPricing.effectivePrice}.`
   );
@@ -246,11 +246,11 @@ async function main() {
     'EC-3',
     'Extended Campaign',
     'Promotional Diwali Selling Prices become applicable during active window',
-    a3Mid.effectivePrice === 32 &&
-      a4Mid.effectivePrice === 16 &&
-      a5Mid.effectivePrice === 8 &&
-      a6Mid.effectivePrice === 4 &&
-      customMid === 16,
+    a3Mid.effectivePrice === 40 &&
+      a4Mid.effectivePrice === 20 &&
+      a5Mid.effectivePrice === 10 &&
+      a6Mid.effectivePrice === 5 &&
+      customMid === 20,
     `Active prices: A3=₹${a3Mid.effectivePrice}, A4=₹${a4Mid.effectivePrice}, A5=₹${a5Mid.effectivePrice}, A6=₹${a6Mid.effectivePrice}, Custom A4=₹${customMid}.`
   );
 
@@ -392,8 +392,8 @@ async function main() {
       'PM-1',
       'Payments',
       'Razorpay works during the active offer with Diwali Selling Price',
-      cartActive.total === 32 &&
-        cartActive.diwaliDiscount === 26 &&
+      cartActive.total === 40 &&
+        cartActive.diwaliDiscount === 18 &&
         cartActive.isMinimumOrderMet &&
         orderActionsSrc.includes('initiatePaymentAction') &&
         orderActionsSrc.includes('verifyPaymentAction'),
@@ -405,7 +405,7 @@ async function main() {
       'PM-2',
       'Payments',
       'Cash on Delivery (COD) works during the active offer',
-      cartActive.total === 32 &&
+      cartActive.total === 40 &&
         orderActionsSrc.includes('placeCodOrderAction') &&
         orderActionsSrc.includes("paymentMethod: 'COD'"),
       `COD checkout uses identical server-side calculateCartTotal(cart.id, now) -> ₹${cartActive.total} during ACTIVE window.`
@@ -433,7 +433,7 @@ async function main() {
     );
 
     // PM-5: Minimum order value of ₹30 is enforced
-    // Update temp cart to 1x A4 (₹16 during active offer < ₹30)
+    // Update temp cart to 1x A4 (₹20 during active offer < ₹30)
     const firstItem = await prisma.cartItem.findFirst({ where: { cartId: tempCart.id } });
     if (firstItem) {
       await prisma.cartItem.update({
@@ -447,9 +447,9 @@ async function main() {
       'Payments',
       'Minimum order value of ₹30 is strictly enforced',
       MINIMUM_ORDER_VALUE === 30 &&
-        singleA4Active.total === 16 &&
+        singleA4Active.total === 20 &&
         !singleA4Active.isMinimumOrderMet &&
-        singleA4Active.shortfallAmount === 14,
+        singleA4Active.shortfallAmount === 10,
       `1x A4 during ACTIVE offer = ₹${singleA4Active.total}; isMinimumOrderMet=${singleA4Active.isMinimumOrderMet}, shortfallAmount=₹${singleA4Active.shortfallAmount}.`
     );
 
@@ -459,7 +459,7 @@ async function main() {
       'Payments',
       'Retail MRP is never charged at checkout in any phase',
       cartUpcoming.total === 58 &&
-        cartActive.total === 32 &&
+        cartActive.total === 40 &&
         cartExpired.total === 58 &&
         cartUpcoming.retailMrpSubtotal > cartUpcoming.total &&
         cartActive.retailMrpSubtotal > cartActive.total &&
